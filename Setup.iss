@@ -10,7 +10,7 @@ SolidCompression=yes
 SetupIconFile=./images/Logo_exe_grand.ico
 
 [Files]
-Source: "dist\RobotTestRunner.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\main.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "images\*"; DestDir: "{app}\images"; Flags: ignoreversion recursesubdirs
 Source: "style\*"; DestDir: "{app}\style"; Flags: ignoreversion recursesubdirs
 
