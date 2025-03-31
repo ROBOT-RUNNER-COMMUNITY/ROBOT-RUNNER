@@ -1,0 +1,17 @@
+build
+RobotTestRunner.spec
+
+tests-for-validation/*.log
+tests-for-validation/*.xml
+tests-for-validation/*.html
+
+tests-for-validation/results
+tests-for-validation/.pabotsuitenames
+tests-for-validation/pabot_results
+
+controllers/__pycache__
+
+# ignore all python cache files
+ui/__pycache__
+utils/__pycache__
+widgets/__pycache__
