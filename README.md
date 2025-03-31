@@ -12,9 +12,9 @@
   <a href="#key-features">Key Features</a> •
   <a href="#download">Download</a> •
   <a href="#credits">Credits</a> •
-  [![Download Installer](https://img.shields.io/badge/Download-Latest-blue)](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/my_app_installer.exe)
 </p>
 
+[![Download Installer](https://img.shields.io/badge/Download-Latest-blue)](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/my_app_installer.exe)
 
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
