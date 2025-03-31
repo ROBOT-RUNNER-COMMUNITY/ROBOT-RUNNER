@@ -78,13 +78,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      
       - name: Download Installer Artifact
         uses: actions/download-artifact@v4
         with:
           name: installer
           path: dist/
-      
+          
       - name: Get latest release tag
         id: get_latest_release
         run: echo "tag=$(gh release view --json tagName -q '.tagName')" >> $GITHUB_ENV
