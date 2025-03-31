@@ -38,6 +38,7 @@ jobs:
           python -m unittest discover -s tests -p "*.py"
 
   build:
+    
     runs-on: windows-latest  # Windows is needed for Inno Setup
     needs: tests
     steps:
@@ -77,8 +78,21 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - name: Download Installer Artifact
         uses: actions/download-artifact@v4
         with:
           name: installer
           path: dist/
+      
+      - name: Get latest release tag
+        id: get_latest_release
+        run: echo "tag=$(gh release view --json tagName -q '.tagName')" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer to latest release
+        run: |
+          gh release upload ${{ env.tag }} dist/*.exe --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
