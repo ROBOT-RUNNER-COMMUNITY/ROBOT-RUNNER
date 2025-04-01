@@ -91,15 +91,9 @@ jobs:
 
       - name: Upload installer to latest release
         run: |
-<<<<<<< HEAD
           echo "[![Download Installer](https://img.shields.io/badge/Download-Latest-blue)](https://github.com/${{ github.repository }}/releases/latest/download/my_app_installer.exe)" > README.md
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "Update README with latest installer link"
           git push
-=======
-          gh release upload ${{ env.tag }} dist/*.exe --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
->>>>>>> dacfb3dfd0aaf968f6452ba77067aa7551f47471
