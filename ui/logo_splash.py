@@ -14,7 +14,7 @@ class LogoSplash:
         self.logo_label.setPixmap(self.logo_pixmap)
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.logo_label.setGeometry(parent.rect())
-        self.show()  # Show the logo label when initialized
+        self.show()
 
         QTimer.singleShot(2500, self.hide)
 

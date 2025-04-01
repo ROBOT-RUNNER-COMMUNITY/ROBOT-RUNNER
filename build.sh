@@ -17,8 +17,6 @@ else
     SEP=";"
 fi
 
-# pyinstaller --noconfirm --onefile --windowed --name "$EXEC_NAME" --add-data "$(pwd)/style/style.qss${SEP}style/" --add-data "$(pwd)/images/logo.png${SEP}images/" main.py
-
 pyinstaller --noconfirm --onefile --windowed --name RobotTestRunner --add-data "./style/style.qss${SEP}style" --add-data "./images/*${SEP}images" --icon=images/Logo_exe_grand.ico main.py
 
 if [ -f "dist/$EXEC_NAME" ] || [ -f "dist/$EXEC_NAME.exe" ]; then

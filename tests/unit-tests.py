@@ -6,7 +6,6 @@ from PyQt6.QtCore import Qt
 
 app = QApplication([]) 
 
-
 class TestRobotTestRunner(unittest.TestCase):
     def setUp(self):
         self.window = RobotTestRunner()

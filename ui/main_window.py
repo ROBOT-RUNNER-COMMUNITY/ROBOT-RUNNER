@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
                             QListWidget, QListWidgetItem, QHBoxLayout, 
                             QFrame, QCheckBox, QSpinBox)
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from ui.logo_splash import LogoSplash
 from ui.styles import apply_styles
 from utils.file_utils import select_directory, select_output_directory, clear_results_directory
@@ -9,6 +9,8 @@ from utils.test_utils import load_tests, run_tests, open_report, open_log
 from widgets.title_bar import TitleBar
 
 class RobotTestRunner(QWidget):
+    windowStateChanged = pyqtSignal(object)  # Add this line
+
     def __init__(self):
         super().__init__()
         self.version_label = "© Robot Runner v 1.6.0"
