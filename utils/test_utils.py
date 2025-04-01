@@ -64,13 +64,14 @@ def run_tests(window):
         return
        
     num_processes = window.processInput.text()
-    repport_title = "TEST AUTO - SUITE"
+    repport_title = "AUTOS TESTS - REPORT"
+    log_title = "AUTOS TESTS - LOG"
  
     if num_processes == 1:
         command = ["robot", "-d", window.output_directory] + selected_tests            
         output_path = os.path.join(window.output_directory, "output.xml")
     else :
-        command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, "--reporttitle", repport_title] + selected_tests
+        command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests
     subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)
        
     output_path = os.path.join(window.output_directory, "output.xml")
