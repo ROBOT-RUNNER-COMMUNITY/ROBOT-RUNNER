@@ -7,7 +7,6 @@
   <br>
 </h1>
 
-
 <p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#download">Download</a> •
