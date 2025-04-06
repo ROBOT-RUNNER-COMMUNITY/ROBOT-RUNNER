@@ -1,4 +1,4 @@
-name: Build and Deploy Installer
+name: Build, Test and Release
 
 on:
   push:
@@ -37,8 +37,7 @@ jobs:
           python -m unittest discover -s tests -p "*.py"
 
   build:
-    
-    runs-on: windows-latest  # Windows is needed for Inno Setup
+    runs-on: windows-latest
     needs: tests
     steps:
       - uses: actions/checkout@v4
@@ -68,30 +67,47 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer
-          path: output/*.exe
+          path: Output/*.exe  # Make sure this matches your Inno Setup output path
 
   release:
     runs-on: ubuntu-latest
     needs: build
+    if: github.ref == 'refs/heads/main'  # Only run on pushes to main
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
       - name: Download Installer Artifact
         uses: actions/download-artifact@v4
         with:
           name: installer
           path: dist/
-          
-      - name: Get latest release tag
-        id: get_latest_release
-        run: echo "tag=$(gh release view --json tagName -q '.tagName')" >> $GITHUB_ENV
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload installer to latest release
+      - name: Get version from project
+        id: get_version
         run: |
-          echo "[![Download Installer](https://img.shields.io/badge/Download-Latest-blue)](https://github.com/${{ github.repository }}/releases/latest/download/my_app_installer.exe)" > README.md
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git push
+          # Extract version from your project (adjust this to match your version source)
+          # For example, if you have a __version__ in your module:
+          VERSION=$(python -c "from your_module import __version__; print(__version__)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          release_name: Release v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload_asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/MyAppInstaller.exe  # Adjust to your installer filename
+          asset_name: MyAppInstaller_v${{ steps.get_version.outputs.version }}.exe
+          asset_content_type: application/octet-stream
