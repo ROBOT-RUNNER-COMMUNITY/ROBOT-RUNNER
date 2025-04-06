@@ -44,13 +44,13 @@ def run_tests(window):
     if not window.test_directory:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner un dossier.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+        window.resultLabel.setStyleSheet("color: #ad402a")
         return
        
     if not window.output_directory:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner un emplacement pour les résultats.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+        window.resultLabel.setStyleSheet("color: #ad402a")
         return
        
     selected_tests = [os.path.join(window.test_directory, window.testList.item(i).text())
@@ -60,7 +60,7 @@ def run_tests(window):
     if not selected_tests:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner au moins un test.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+        window.resultLabel.setStyleSheet("color: #ad402a")
         return
        
     num_processes = window.processInput.text()
@@ -80,11 +80,11 @@ def run_tests(window):
     if result.suite.statistics.failed >= 1:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+        window.resultLabel.setStyleSheet("color: #ad402a")
     else:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-        window.resultLabel.setStyleSheet("color: green; font: bold")        
+        window.resultLabel.setStyleSheet("color: green")        
  
 def open_report(window):
     report_path = os.path.join(window.output_directory, "report.html")
