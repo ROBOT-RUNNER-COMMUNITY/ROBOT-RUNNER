@@ -2,9 +2,9 @@ name: Build, Test and Release
 
 on:
   push:
-    branches: [ "main" ]
+    anches: [ "main", "contribution"]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "contribution"]
   workflow_dispatch:
 
 jobs:
