@@ -2,7 +2,7 @@ name: Build, Test and Release
 
 on:
   push:
-    anches: [ "main", "contribution"]
+    branches: [ "main", "contribution"]  # Fixed typo
   pull_request:
     branches: [ "main", "contribution"]
   workflow_dispatch:
@@ -67,12 +67,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer
-          path: Output/*.exe  # Make sure this matches your Inno Setup output path
+          path: Output/*.exe
 
   release:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'  # Only run on pushes to main
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
     steps:
@@ -80,14 +80,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: installer
-          path: dist/
+          path: Output/  # Changed to match upload path
 
       - name: Get version from project
         id: get_version
         run: |
-          # Extract version from your project (adjust this to match your version source)
-          # For example, if you have a __version__ in your module:
-          VERSION=$(python -c "from your_module import __version__; print(__version__)")
+          # Example using setup.py - adjust to your actual version source
+          VERSION=$(python setup.py --version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Release
@@ -108,6 +107,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/MyAppInstaller.exe  # Adjust to your installer filename
+          asset_path: ./Output/MyAppInstaller.exe  # Adjust to your actual path and filename
           asset_name: MyAppInstaller_v${{ steps.get_version.outputs.version }}.exe
           asset_content_type: application/octet-stream
