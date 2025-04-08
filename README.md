@@ -6,6 +6,7 @@
   ROBOT RUNNER
   <br>
 </h1>
+<img src="images/Logo.png" />
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
