@@ -1,0 +1,116 @@
+name: Python CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "contribution" ]
+  pull_request:
+    branches: [ "main", "contribution" ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.10"
+  ARTIFACT_NAME: "app-release"
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Run tests with coverage
+      env:
+        QT_QPA_PLATFORM: "offscreen"
+      run: |
+        python -m pytest --cov=./ --cov-report=xml tests/
+    
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+
+  build:
+    name: Build (Windows)
+    needs: test
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Build executable
+      run: |
+        pyinstaller --onefile --windowed --name MyApp main.py
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: |
+          dist/MyApp.exe
+          README.md
+
+  release:
+    name: Create Release
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: release-files
+    
+    - name: Get version
+      id: version
+      run: |
+        # Alternative version detection methods:
+        # 1. From pyproject.toml (requires tomli)
+        # 2. From setup.py
+        # 3. Hardcoded version file
+        echo "version=1.0.0" >> $GITHUB_OUTPUT
+    
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: Release v${{ steps.version.outputs.version }}
+        body: |
+          Automated release
+          - Includes Windows executable
+          - Built from ${{ github.sha }}
+        files: |
+          release-files/MyApp.exe
+          release-files/README.md
