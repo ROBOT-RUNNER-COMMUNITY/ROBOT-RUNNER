@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <br>
-  <a href="ROBBOT RUNNER"><img src="images/check.png" width="300"></a>
+  <a href="ROBBOT RUNNER"><img src="images/logo.png" width="300"></a>
   <br>
   ROBOT RUNNER
   <br>
