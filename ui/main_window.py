@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from ui.logo_splash import LogoSplash
 from ui.styles import apply_styles
 from utils.file_utils import select_directory, select_output_directory, clear_results_directory
-from utils.test_utils import load_tests, run_tests, open_report, open_log
+from utils.test_utils import export_results, load_tests, run_tests, open_report, open_log
 from widgets.title_bar import TitleBar
 
 class RobotTestRunner(QWidget):
@@ -13,7 +13,7 @@ class RobotTestRunner(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.version_label = "© Robot Runner v 1.11.2"
+        self.version_label = "© Robot Runner v 2.0.0"
         self.test_directory = ""
         self.output_directory = ""
         self.init_ui()
@@ -125,6 +125,12 @@ class RobotTestRunner(QWidget):
         self.logButton.clicked.connect(lambda: open_log(self))
         reportLogLayout.addWidget(self.logButton)
         self.main_layout.addLayout(reportLogLayout)
+        
+        self.exportResults = QPushButton("Export Results")
+        self.exportResults.clicked.connect(lambda: export_results(self))
+        reportLogLayout.addWidget(self.exportResults)
+        self.main_layout.addLayout(reportLogLayout)
+
 
     def init_version_label(self):
         self.version_layout = QVBoxLayout()
