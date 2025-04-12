@@ -68,12 +68,14 @@ def run_tests(window):
     log_title = "AUTOS TESTS - LOG"
  
     if num_processes == 1:
-        command = ["robot", "-d", window.output_directory] + selected_tests            
-        output_path = os.path.join(window.output_directory, "output.xml")
+        if len(selected_tests) == 1 :
+            command = ["robot","-d", window.output_directory, selected_tests]          
+        else:
+            command = ["pabot", "--processes", 1, "--outputdir", window.output_directory, "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests          
     else :
         command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests
-    subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)
-       
+    
+    subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)   
     output_path = os.path.join(window.output_directory, "output.xml")
     result = ExecutionResult(output_path)
          
