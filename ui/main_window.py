@@ -13,7 +13,7 @@ class RobotTestRunner(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.version_label = "© Robot Runner v 1.11.1"
+        self.version_label = "© Robot Runner v 1.11.2"
         self.test_directory = ""
         self.output_directory = ""
         self.init_ui()
