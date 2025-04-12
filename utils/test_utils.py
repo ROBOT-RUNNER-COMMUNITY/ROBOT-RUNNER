@@ -44,78 +44,47 @@ def run_tests(window):
     if not window.test_directory:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner un dossier.")
-        window.resultLabel.setStyleSheet("color: #ad402a")
+        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
         return
        
     if not window.output_directory:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner un emplacement pour les résultats.")
-        window.resultLabel.setStyleSheet("color: #ad402a")
+        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
         return
        
     selected_tests = [os.path.join(window.test_directory, window.testList.item(i).text())
-                      for i in range(window.testList.count())
-                      if window.testList.item(i).checkState() == Qt.CheckState.Checked]
+                        for i in range(window.testList.count())
+                        if window.testList.item(i).checkState() == Qt.CheckState.Checked]
        
     if not selected_tests:
         window.resultLabel.setStyleSheet("color: none")
         window.resultLabel.setText("Veuillez sélectionner au moins un test.")
-        window.resultLabel.setStyleSheet("color: #ad402a")
+        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
         return
-    
-    try:
-        num_processes = int(window.processInput.text() or 1)
-    except ValueError:
-        num_processes = 1
-    
-    report_title = "AUTOS TESTS - REPORT"
+       
+    num_processes = window.processInput.text()
+    repport_title = "AUTOS TESTS - REPORT"
     log_title = "AUTOS TESTS - LOG"
-
-    # Ensure output directory exists
-    os.makedirs(window.output_directory, exist_ok=True)
-
-    try:
-        if num_processes == 1:
-            command = ["robot", "-d", window.output_directory, "--reporttitle", report_title, "--logtitle", log_title]
-            command.extend(selected_tests)
-        else:
-            command = ["pabot", "--processes", str(num_processes), "--outputdir", window.output_directory, 
-                       "--reporttitle", report_title, "--logtitle", log_title]
-            command.extend(selected_tests)
-        
-        # Run the command and wait for completion
-        process = subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)
-        
-        # Check if the command failed to execute at all
-        if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, command)
-        
+ 
+    if num_processes == 1:
+        command = ["robot", "-d", window.output_directory] + selected_tests            
         output_path = os.path.join(window.output_directory, "output.xml")
-        
-        # Verify the output file exists before trying to parse it
-        if not os.path.exists(output_path):
-            raise FileNotFoundError(f"Output file not found at {output_path}")
-        
-        result = ExecutionResult(output_path)
-             
-        if result.suite.statistics.failed >= 1:
-            window.resultLabel.setStyleSheet("color: none")
-            window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-            window.resultLabel.setStyleSheet("color: #ad402a")
-        else:
-            window.resultLabel.setStyleSheet("color: none")
-            window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-            window.resultLabel.setStyleSheet("color: green")
-    
-    except subprocess.CalledProcessError as e:
-        window.resultLabel.setStyleSheet("color: #ad402a")
-        window.resultLabel.setText(f"Erreur d'exécution: {e.stderr or 'Unknown error'}")
-    except FileNotFoundError as e:
-        window.resultLabel.setStyleSheet("color: #ad402a")
-        window.resultLabel.setText(f"Fichier de résultats non trouvé: {str(e)}")
-    except Exception as e:
-        window.resultLabel.setStyleSheet("color: #ad402a")
-        window.resultLabel.setText(f"Erreur inattendue: {str(e)}")      
+    else :
+        command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests
+    subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)
+       
+    output_path = os.path.join(window.output_directory, "output.xml")
+    result = ExecutionResult(output_path)
+         
+    if result.suite.statistics.failed >= 1:
+        window.resultLabel.setStyleSheet("color: none")
+        window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
+        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+    else:
+        window.resultLabel.setStyleSheet("color: none")
+        window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
+        window.resultLabel.setStyleSheet("color: green; font: bold")        
  
 def open_report(window):
     report_path = os.path.join(window.output_directory, "report.html")
