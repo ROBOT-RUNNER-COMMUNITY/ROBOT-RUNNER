@@ -2,35 +2,42 @@ name: Build and Create Installer
 
 on:
   push:
-    branches: [ main, dev ]  # Replace "dev" with your branch name
+    branches: [ main, contribution ]  # Triggers on push to main/dev
   pull_request:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-latest  # Use windows if you're building a .NET app
+    runs-on: windows-latest  # Required for Inno Setup
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.0.x'  # Update to your .NET version
+        dotnet-version: '6.0.x'  # Change to your .NET version
 
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build
+    - name: Build Release
       run: dotnet build --configuration Release --no-restore
 
-    - name: Publish
+    - name: Publish Application
       run: dotnet publish -c Release -o ./publish
 
-    - name: Create Installer
+    - name: Install Inno Setup
+      run: choco install innosetup -y
+
+    - name: Generate Installer
       run: |
-        # Add your installer generation commands here.
-        # Example for Inno Setup:
-        ISCC.exe /O"./publish" "./PathToYourScript.iss"
+        ISCC.exe /O"./publish" "./installer/ROBOT-RUNNER.iss"  # Update path to your .iss file
       shell: cmd
+
+    - name: Upload Artifact (Installer)
+      uses: actions/upload-artifact@v3
+      with:
+        name: ROBOT-RUNNER-Installer
+        path: ./publish/*.exe  # Uploads the generated installer
