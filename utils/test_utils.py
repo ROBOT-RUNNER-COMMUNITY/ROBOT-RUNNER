@@ -103,33 +103,28 @@ def open_log(window):
 
 def export_results(window):
     try:
-        # 1. VALIDATE OUTPUT DIRECTORY
         if not hasattr(window, 'output_directory') or not window.output_directory:
             window.resultLabel.setText("Output directory not set!")
             window.resultLabel.setStyleSheet("color: #ad402a")
             return
 
-        # 2. CHECK FOR OUTPUT.XML
         output_xml = os.path.join(window.output_directory, "output.xml")
         if not os.path.exists(output_xml):
             window.resultLabel.setText("Run tests first to generate output.xml!")
             window.resultLabel.setStyleSheet("color: #ad402a")
             return
 
-        # 3. PARSE TEST RESULTS
         result = ExecutionResult(output_xml)
         wb = Workbook()
         ws = wb.active
         ws.title = "Test Results"
 
-        # 4. CREATE TABLE HEADERS
         headers = ["Suite Name", "Test Name", "Status", "Duration (s)"]
         ws.append(headers)
         for cell in ws[1]:
             cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="D3D3D3", fill_type="solid")
 
-        # 5. POPULATE TEST DATA
         passed_count = 0
         failed_count = 0
 
@@ -149,13 +144,11 @@ def export_results(window):
                     status_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                     status_cell.font = Font(color="9C0006")
 
-        # 6. ADD SUMMARY TABLE (NO blank row between header and data)
         chart_data_start = ws.max_row + 2
         ws.append(["Status", "Count"])
         ws.append(["Passed", passed_count])
         ws.append(["Failed", failed_count])
 
-        # 7. CREATE BAR CHART
         chart = BarChart()
         chart.type = "col"
         chart.style = 10
@@ -167,29 +160,25 @@ def export_results(window):
         chart.width = 15
         chart.height = 10
 
-        # 8. CORRECTLY REFERENCE DATA (skip header, just the 2 rows: Passed + Failed)
         data = Reference(ws,
                          min_col=2,  # "Count" column
-                         min_row=chart_data_start + 1,
-                         max_row=chart_data_start + 2)
+                         min_row=chart_data_start + 0,
+                         max_row=chart_data_start + 1)
 
         cats = Reference(ws,
                          min_col=1,  # "Status" column
-                         min_row=chart_data_start + 1,
-                         max_row=chart_data_start + 2)
+                         min_row=chart_data_start + 0,
+                         max_row=chart_data_start + 1)
 
         chart.add_data(data, titles_from_data=False)
         chart.set_categories(cats)
 
-        # 9. ADD CHART TO WORKSHEET
         ws.add_chart(chart, "F2")
 
-        # 10. AUTO-FIT COLUMNS
         for col in ws.columns:
             max_len = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = max_len + 2
 
-        # 11. SAVE AND OPEN EXCEL FILE
         excel_path = os.path.join(window.output_directory, 'test_results.xlsx')
         wb.save(excel_path)
 
