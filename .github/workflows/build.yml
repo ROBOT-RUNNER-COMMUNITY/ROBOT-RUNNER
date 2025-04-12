@@ -2,7 +2,7 @@ name: Build and Create Installer
 
 on:
   push:
-    branches: [ main, dev ]  # Triggers on push to main/dev
+    branches: [ main, contribution ]  # Triggers on push to main/dev
   pull_request:
     branches: [ main ]
 

@@ -1,12 +1,11 @@
 
 <h1 align="center">
   <br>
-  <a href="ROBBOT RUNNER"><img src="./images/Logo.png" width="300"></a>
+  <a href="ROBBOT RUNNER"><img src="images/Logo.png" width="300"></a>
   <br>
   ROBOT RUNNER
   <br>
 </h1>
-
 <p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#download">Download</a> •
