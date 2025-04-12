@@ -1,89 +1,43 @@
-name: ROBOT-RUNNER CI/CD Pipeline
+name: Build and Create Installer
 
 on:
   push:
-    branches: [ main, contribution ]
+    branches: [ main, contribution ]  # Triggers on push to main/dev
   pull_request:
-    branches: [ main, contribution ]
-  workflow_dispatch:  # Manual trigger option
-
-env:
-  DOTNET_VERSION: '6.0.x'
-  SOLUTION_FILE: 'ROBOT RUNNER.sln'
-  PUBLISH_DIR: './publish'
-  INSTALLER_SCRIPT: './installer/ROBOT-RUNNER.iss'
-  INSTALLER_NAME: 'ROBOT-RUNNER-Setup'
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
-    runs-on: windows-latest
-    timeout-minutes: 30
+  build:
+    runs-on: windows-latest  # Required for Inno Setup
 
     steps:
-    # ========== SETUP ==========
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '6.0.x'  # Change to your .NET version
 
-    # ========== BUILD ==========
     - name: Restore dependencies
-      run: dotnet restore "${{ env.SOLUTION_FILE }}"
+      run: dotnet restore
 
-    - name: Build solution (Release)
-      run: dotnet build "${{ env.SOLUTION_FILE }}" --configuration Release --no-restore
-      
-    - name: Run tests (if any)
-      run: dotnet test "${{ env.SOLUTION_FILE }}" --configuration Release --no-build
+    - name: Build Release
+      run: dotnet build --configuration Release --no-restore
 
-    # ========== PUBLISH ==========
-    - name: Publish application
-      run: |
-        dotnet publish "${{ env.SOLUTION_FILE }}" \
-          -c Release \
-          -o "${{ env.PUBLISH_DIR }}" \
-          --no-build \
-          /p:Version=${{ github.run_number }}
+    - name: Publish Application
+      run: dotnet publish -c Release -o ./publish
 
-    - name: Verify publish output
-      run: |
-        echo "Publish directory contents:"
-        dir "${{ env.PUBLISH_DIR }}"
-      shell: cmd
-
-    # ========== INSTALLER GENERATION ==========
     - name: Install Inno Setup
-      run: choco install innosetup -y --no-progress
-      continue-on-error: false
+      run: choco install innosetup -y
 
-    - name: Generate installer
+    - name: Generate Installer
       run: |
-        echo "Compiling installer..."
-        ISCC.exe "${{ env.INSTALLER_SCRIPT }}" \
-          /O"${{ env.PUBLISH_DIR }}" \
-          /F"${{ env.INSTALLER_NAME }}" \
-          /DMyAppVersion=${{ github.run_number }}
+        ISCC.exe /O"./publish" "./installer/ROBOT-RUNNER.iss"  # Update path to your .iss file
       shell: cmd
 
-    # ========== ARTIFACTS & DEPLOYMENT ==========
-    - name: Upload installer artifact
+    - name: Upload Artifact (Installer)
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.INSTALLER_NAME }}
-        path: ${{ env.PUBLISH_DIR }}/${{ env.INSTALLER_NAME }}*.exe
-        retention-days: 7
-
-    # ========== OPTIONAL: RELEASE UPLOAD ==========
-    - name: Create GitHub Release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ env.PUBLISH_DIR }}/${{ env.INSTALLER_NAME }}*.exe
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
-        body: Automated release
+        name: ROBOT-RUNNER-Installer
+        path: ./publish/*.exe  # Uploads the generated installer
