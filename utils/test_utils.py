@@ -119,6 +119,7 @@ def export_results(window):
         ws = wb.active
         ws.title = "Test Results"
 
+        # Premier tableau - Détails des tests
         headers = ["Suite Name", "Test Name", "Status", "Duration (s)"]
         ws.append(headers)
         for cell in ws[1]:
@@ -144,11 +145,30 @@ def export_results(window):
                     status_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                     status_cell.font = Font(color="9C0006")
 
-        chart_data_start = ws.max_row + 2
-        ws.append(["Status", "Count"])
+        # Ajout d'une ligne vide pour séparer les tableaux
+        ws.append([])
+
+        # Deuxième tableau - Résumé
+        summary_headers = ["Status", "Count"]
+        ws.append(summary_headers)
+        
+        # Style des en-têtes du tableau de résumé
+        for cell in ws[ws.max_row]:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="D3D3D3", fill_type="solid")
+        
         ws.append(["Passed", passed_count])
         ws.append(["Failed", failed_count])
+        
+        # Style des cellules du tableau de résumé
+        for row in ws.iter_rows(min_row=ws.max_row-1, max_row=ws.max_row):
+            for cell in row:
+                if cell.column == 1:  # Colonne Status
+                    cell.fill = PatternFill(start_color="E7E6E6", fill_type="solid")
+                else:  # Colonne Count
+                    cell.fill = PatternFill(start_color="F2F2F2", fill_type="solid")
 
+        chart_data_start = ws.max_row + 2
         chart = BarChart()
         chart.type = "col"
         chart.style = 10
@@ -162,13 +182,13 @@ def export_results(window):
 
         data = Reference(ws,
                          min_col=2,  # "Count" column
-                         min_row=chart_data_start + 0,
-                         max_row=chart_data_start + 1)
+                         min_row=chart_data_start - 3,
+                         max_row=chart_data_start - 2)
 
         cats = Reference(ws,
                          min_col=1,  # "Status" column
-                         min_row=chart_data_start + 0,
-                         max_row=chart_data_start + 1)
+                         min_row=chart_data_start - 3,
+                         max_row=chart_data_start - 2)
 
         chart.add_data(data, titles_from_data=False)
         chart.set_categories(cats)
