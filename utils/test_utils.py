@@ -102,24 +102,36 @@ def open_log(window):
         os.system(f'start "" "{log_path}"')
 
 def export_results(window):
+    """Export Robot Framework test results to an Excel file with comprehensive error handling."""
     try:
+        # Validate output directory
         if not hasattr(window, 'output_directory') or not window.output_directory:
             window.resultLabel.setText("Output directory not set!")
             window.resultLabel.setStyleSheet("color: #ad402a")
             return
 
+        # Check if output.xml exists
         output_xml = os.path.join(window.output_directory, "output.xml")
         if not os.path.exists(output_xml):
             window.resultLabel.setText("Run tests first to generate output.xml!")
             window.resultLabel.setStyleSheet("color: #ad402a")
             return
 
+        # Create results directory if needed
+        try:
+            os.makedirs(window.output_directory, exist_ok=True)
+        except OSError as e:
+            window.resultLabel.setText(f"Cannot create directory: {str(e)}")
+            window.resultLabel.setStyleSheet("color: #ad402a")
+            return
+
+        # Process test results
         result = ExecutionResult(output_xml)
         wb = Workbook()
         ws = wb.active
         ws.title = "Test Results"
 
-        # Premier tableau - Détails des tests
+        # Set up headers with formatting
         headers = ["Suite Name", "Test Name", "Status", "Duration (s)"]
         ws.append(headers)
         for cell in ws[1]:
@@ -129,6 +141,7 @@ def export_results(window):
         passed_count = 0
         failed_count = 0
 
+        # Populate test data with status formatting
         for suite in result.suite.suites:
             for test in suite.tests:
                 status = "Passed" if test.passed else "Failed"
@@ -145,29 +158,29 @@ def export_results(window):
                     status_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                     status_cell.font = Font(color="9C0006")
 
-        # Ajout d'une ligne vide pour séparer les tableaux
-        ws.append([])
-
-        # Deuxième tableau - Résumé
+        # Add summary section
+        ws.append([])  # Empty row
         summary_headers = ["Status", "Count"]
         ws.append(summary_headers)
-        
-        # Style des en-têtes du tableau de résumé
+
+        # Format summary headers
         for cell in ws[ws.max_row]:
             cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="D3D3D3", fill_type="solid")
         
+        # Add summary data
         ws.append(["Passed", passed_count])
         ws.append(["Failed", failed_count])
         
-        # Style des cellules du tableau de résumé
+        # Format summary rows
         for row in ws.iter_rows(min_row=ws.max_row-1, max_row=ws.max_row):
             for cell in row:
-                if cell.column == 1:  # Colonne Status
+                if cell.column == 1:
                     cell.fill = PatternFill(start_color="E7E6E6", fill_type="solid")
-                else:  # Colonne Count
+                else:
                     cell.fill = PatternFill(start_color="F2F2F2", fill_type="solid")
 
+        # Create bar chart
         chart_data_start = ws.max_row + 2
         chart = BarChart()
         chart.type = "col"
@@ -181,36 +194,51 @@ def export_results(window):
         chart.height = 10
 
         data = Reference(ws,
-                         min_col=2,  # "Count" column
-                         min_row=chart_data_start - 3,
-                         max_row=chart_data_start - 2)
-
+                        min_col=2,
+                        min_row=chart_data_start - 3,
+                        max_row=chart_data_start - 2)
         cats = Reference(ws,
-                         min_col=1,  # "Status" column
-                         min_row=chart_data_start - 3,
-                         max_row=chart_data_start - 2)
+                        min_col=1,
+                        min_row=chart_data_start - 3,
+                        max_row=chart_data_start - 2)
 
         chart.add_data(data, titles_from_data=False)
         chart.set_categories(cats)
-
         ws.add_chart(chart, "F2")
 
+        # Auto-adjust column widths
         for col in ws.columns:
             max_len = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = max_len + 2
 
-        excel_path = os.path.join(window.output_directory, 'test_results.xlsx')
-        wb.save(excel_path)
+        # Define output path
+        excel_filename = 'test_results.xlsx'
+        excel_path = os.path.join(window.output_directory, excel_filename)
+        
+        # Attempt to save with error handling
+        try:
+            wb.save(excel_path)
+        except PermissionError:
+            window.resultLabel.setText("Please close the Excel file to generate new report")
+            window.resultLabel.setStyleSheet("color: #ad402a")
+            return
+        except Exception as e:
+            window.resultLabel.setText("Error saving report file")
+            window.resultLabel.setStyleSheet("color: #ad402a")
+            return
 
+        # Verify and show success
         if os.path.exists(excel_path):
-            window.resultLabel.setText(f"Report exported to {excel_path}")
+            window.resultLabel.setText(f"Report saved to {excel_path}")
             window.resultLabel.setStyleSheet("color: green")
-            os.startfile(excel_path)
+            try:
+                os.startfile(excel_path)
+            except:
+                pass  # Silently fail if can't auto-open
         else:
-            window.resultLabel.setText("Failed to create Excel file")
+            window.resultLabel.setText("Failed to create report file")
             window.resultLabel.setStyleSheet("color: #ad402a")
 
-    except Exception as e:
-        window.resultLabel.setText(f"Export error: {str(e)}")
+    except Exception:
+        window.resultLabel.setText("Unexpected error during export")
         window.resultLabel.setStyleSheet("color: #ad402a")
-        print(f"Error details:\n{traceback.format_exc()}")
