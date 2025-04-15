@@ -89,7 +89,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
+          tag_name: v2.3.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
           body: "New release of the desktop application."
           draft: false
@@ -97,12 +97,3 @@ jobs:
           files: dist/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update README with Download Link
-        run: |
-          echo "[![Download Installer](https://img.shields.io/badge/Download-Latest-blue)](https://github.com/${{ github.repository }}/releases/latest/download/my_app_installer.exe)" > README.md
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "Update README with latest installer link"
-          git push
