@@ -89,6 +89,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v2.3.${{ github.run_number }}
+          name: Release v2.3.${{ github.run_number }}
+          body: "New release of the desktop application."
           draft: false
           prerelease: false
           files: dist/*.exe
