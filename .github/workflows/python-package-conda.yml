@@ -88,10 +88,11 @@ jobs:
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
+        run: |
+          echo "Release version: ${{ github.event.release.tag_name }}"
+          echo "Release name: ${{ github.event.release.name }}"
+          ls -l
         with:
-          tag_name: v2.3.${{ github.run_number }}
-          name: Release v2.3.${{ github.run_number }}
-          body: "New release of the desktop application."
           draft: false
           prerelease: false
           files: dist/*.exe
