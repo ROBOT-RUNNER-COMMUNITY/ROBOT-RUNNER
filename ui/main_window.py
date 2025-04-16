@@ -7,13 +7,20 @@ from ui.styles import apply_styles
 from utils.file_utils import select_directory, select_output_directory, clear_results_directory
 from utils.test_utils import export_results, load_tests, run_tests, open_report, open_log
 from widgets.title_bar import TitleBar
+import xml.etree.ElementTree as ET
 
 class RobotTestRunner(QWidget):
     windowStateChanged = pyqtSignal(object)  # Add this line
 
     def __init__(self):
         super().__init__()
-        self.version_label = "© Robot Runner v 2.3.0"
+        # Get the version 
+        tree = ET.parse('config.xml')
+        root = tree.getroot()
+        version = root[0].text
+        
+
+        self.version_label = f"© Robot Runner {version}"
         self.test_directory = ""
         self.output_directory = ""
         self.init_ui()
