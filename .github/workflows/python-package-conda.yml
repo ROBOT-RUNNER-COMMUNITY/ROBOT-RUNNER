@@ -62,17 +62,12 @@ jobs:
 
       - name: Extract version from XML
         id: version
-        shell: bash
+        shell: pwsh
         run: |
-          # Install xmlstarlet for XML parsing
-          if ! command -v xmlstarlet &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y xmlstarlet
-          fi
-          
-          # Extract version from XML file
-          VERSION=$(xmlstarlet sel -t -v "//version" config.xml | tr -d '[:space:]')
-          echo "Extracted version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          [xml]$xml = Get-Content -Path "config.xml"
+          $version = $xml.data.version.Trim()
+          Write-Output "Extracted version: $version"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build Installer using Inno Setup
         run: |
@@ -100,12 +95,8 @@ jobs:
           
       - name: Extract version from XML
         id: version
-        shell: bash
         run: |
-          # Install xmlstarlet for XML parsing
           sudo apt-get update && sudo apt-get install -y xmlstarlet
-          
-          # Extract version from XML file
           VERSION=$(xmlstarlet sel -t -v "//version" config.xml | tr -d '[:space:]')
           echo "Extracted version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
