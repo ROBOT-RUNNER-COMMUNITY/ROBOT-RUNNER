@@ -1,4 +1,3 @@
-
 name: Build and Deploy Installer
 
 on:
@@ -39,7 +38,7 @@ jobs:
           python -m unittest discover -s tests -p "*.py"
 
   build:
-    runs-on: windows-latest  # Windows is needed for Inno Setup
+    runs-on: windows-latest
     needs: tests
     steps:
       - uses: actions/checkout@v4
@@ -61,9 +60,23 @@ jobs:
       - name: Install Inno Setup
         run: choco install -y innosetup
 
+      - name: Extract version from XML
+        id: version
+        shell: bash
+        run: |
+          # Install xmlstarlet for XML parsing
+          if ! command -v xmlstarlet &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y xmlstarlet
+          fi
+          
+          # Extract version from XML file
+          VERSION=$(xmlstarlet sel -t -v "//version" config.xml | tr -d '[:space:]')
+          echo "Extracted version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build Installer using Inno Setup
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ./Setup.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./Setup.iss
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -84,13 +97,25 @@ jobs:
         with:
           name: installer
           path: dist/
+          
+      - name: Extract version from XML
+        id: version
+        shell: bash
+        run: |
+          # Install xmlstarlet for XML parsing
+          sudo apt-get update && sudo apt-get install -y xmlstarlet
+          
+          # Extract version from XML file
+          VERSION=$(xmlstarlet sel -t -v "//version" config.xml | tr -d '[:space:]')
+          echo "Extracted version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
   
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.3.${{ github.run_number }}
-          name: Release v2.3.${{ github.run_number }}
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: Release ${{ steps.version.outputs.VERSION }}
           body: "New release of the desktop application."
           draft: false
           prerelease: false
