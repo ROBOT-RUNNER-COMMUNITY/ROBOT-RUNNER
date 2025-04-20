@@ -20,7 +20,8 @@ class RobotTestRunner(QWidget):
         self.version_label = ""
         self.test_directory = ""
         self.output_directory = ""
-        
+        self.drag_position = QPoint()  # Initialize drag_position
+
         # Then load configuration
         self._load_config()
         
