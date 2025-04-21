@@ -13,9 +13,6 @@ class TitleBar(QWidget):
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(5)
 
-        self.title = QLabel(title)
-        self.title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(self.title)
 
         layout.addStretch()
 

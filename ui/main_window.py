@@ -5,7 +5,14 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use('Qt5Agg')  # Set the backend before importing pyplot
+
+from ui.logo_splash import LogoSplash
+from ui.styles import apply_styles
+from utils.file_utils import clear_results_directory, select_directory, select_output_directory
+from utils.test_utils import export_results, load_tests, open_log, open_report, run_tests
+from widgets.sidebar import SideBar
+from widgets.title_bar import TitleBar
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -19,13 +26,9 @@ from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QColor, QPainter, QFont
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSet, QBarSeries, QBarCategoryAxis, QValueAxis
 
-# Import local modules
-from ui.logo_splash import LogoSplash
-from ui.styles import apply_styles
-from utils.file_utils import select_directory, select_output_directory, clear_results_directory
-from utils.test_utils import export_results, load_tests, run_tests, open_report, open_log
-from widgets.sidebar import SideBar
-from widgets.title_bar import TitleBar
+# Suppress Qt network errors
+os.environ["QT_LOGGING_RULES"] = "qt.network.ssl.warning=false"
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-logging"
 
 class DashboardDataLoader(QObject):
     data_loaded = pyqtSignal(dict)
@@ -34,18 +37,32 @@ class DashboardDataLoader(QObject):
         super().__init__()
         self.results_dir = os.path.join("tests-for-validation", "Results")
         self.is_loading = False
+        self.last_modified = 0
         
-    def load_data(self):
+    def load_data(self, force=False):
         if self.is_loading:
             return
             
+        # Check if results directory has changed
+        current_modified = 0
+        if os.path.exists(self.results_dir):
+            for root, _, files in os.walk(self.results_dir):
+                if 'output.xml' in files:
+                    file_path = os.path.join(root, 'output.xml')
+                    current_modified = max(current_modified, os.path.getmtime(file_path))
+        
+        if not force and current_modified <= self.last_modified:
+            return
+            
+        self.last_modified = current_modified
         self.is_loading = True
         stats = {
             'total_tests': 0,
             'passed': 0,
             'failed': 0,
             'execution_times': [],
-            'recent_runs': []
+            'recent_runs': [],
+            'test_details': []
         }
         
         try:
@@ -53,8 +70,9 @@ class DashboardDataLoader(QObject):
                 for root, _, files in os.walk(self.results_dir):
                     if 'output.xml' in files:
                         try:
-                            xml_tree = ET.parse(os.path.join(root, 'output.xml'))
-                            xml_root = xml_tree.getroot()
+                            xml_path = os.path.join(root, 'output.xml')
+                            tree = ET.parse(xml_path)
+                            xml_root = tree.getroot()
                             
                             # Get statistics
                             for stat in xml_root.findall('.//statistics/total/stat'):
@@ -63,9 +81,11 @@ class DashboardDataLoader(QObject):
                                     stats['passed'] += int(stat.find('pass').text)
                                     stats['failed'] += int(stat.find('fail').text)
                             
-                            # Get suite data
+                            # Get suite and test details
                             for suite in xml_root.findall('.//suite'):
+                                suite_name = suite.get('name')
                                 status = suite.find('.//status')
+                                
                                 if status is not None:
                                     try:
                                         start = datetime.strptime(
@@ -76,17 +96,34 @@ class DashboardDataLoader(QObject):
                                             status.get('endtime'), 
                                             "%Y%m%d %H:%M:%S.%f"
                                         )
+                                        duration = (end - start).total_seconds()
+                                        
                                         stats['recent_runs'].append({
-                                            'suite': suite.get('name'),
+                                            'suite': suite_name,
                                             'timestamp': start,
-                                            'status': status.get('status')
+                                            'status': status.get('status'),
+                                            'duration': duration
                                         })
-                                        stats['execution_times'].append((end - start).total_seconds())
-                                    except ValueError:
+                                        stats['execution_times'].append(duration)
+                                        
+                                        # Get individual test details
+                                        for test in suite.findall('.//test'):
+                                            test_status = test.find('.//status')
+                                            if test_status is not None:
+                                                stats['test_details'].append({
+                                                    'suite': suite_name,
+                                                    'test': test.get('name'),
+                                                    'status': test_status.get('status'),
+                                                    'start': test_status.get('starttime'),
+                                                    'end': test_status.get('endtime'),
+                                                    'message': test_status.text.strip() if test_status.text else ""
+                                                })
+                                    except ValueError as e:
+                                        print(f"Error parsing timestamps: {e}")
                                         continue
                                     
                         except ET.ParseError as e:
-                            print(f"Error parsing XML: {e}")
+                            print(f"Error parsing XML {xml_path}: {e}")
                             continue
             
             if stats['recent_runs']:
@@ -142,7 +179,7 @@ class RobotTestRunner(QWidget):
         self.right_container.setLayout(self.right_layout)
         
         # Title bar
-        self.title_bar = TitleBar("Robot Framework Test Runner", self)
+        self.title_bar = TitleBar("", self)
         self.right_layout.addWidget(self.title_bar)
         
         # Stacked widget for pages
@@ -168,8 +205,18 @@ class RobotTestRunner(QWidget):
         self._init_help_page()
         self._connect_signals()
         
+        # Add update timer
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.check_for_updates)
+        self.update_timer.start(5000)  # Check every 5 seconds
+
         apply_styles(self)
         self.show_main_content()
+
+    def check_for_updates(self):
+        """Check for new test results and update UI if found"""
+        if hasattr(self, 'dashboard_loader'):
+            self.dashboard_loader.load_data()
 
     def _init_components(self):
         """Initialize test selection components"""
@@ -218,7 +265,7 @@ class RobotTestRunner(QWidget):
 
         # Run button
         self.runButton = QPushButton("Run selected tests")
-        self.runButton.clicked.connect(lambda: run_tests(self))
+        self.runButton.clicked.connect(self.run_tests_with_update)
         self.content_layout.addWidget(self.runButton)
 
         # Results controls
@@ -231,7 +278,7 @@ class RobotTestRunner(QWidget):
         fileLayout.addWidget(self.fileButton)
 
         self.clearButton = QPushButton("Clear results")
-        self.clearButton.clicked.connect(lambda: clear_results_directory(self))
+        self.clearButton.clicked.connect(self.clear_results_with_update)
         fileLayout.addWidget(self.clearButton)
         self.content_layout.addLayout(fileLayout)
 
@@ -260,11 +307,31 @@ class RobotTestRunner(QWidget):
         self.version_layout.addWidget(self.version)
         self.content_layout.addLayout(self.version_layout)
 
+    def run_tests_with_update(self):
+        """Run tests and then update dashboard"""
+        run_tests(self)
+        if hasattr(self, 'dashboard_loader'):
+            QTimer.singleShot(1000, lambda: self.dashboard_loader.load_data(force=True))
+
+    def clear_results_with_update(self):
+        """Clear results and update dashboard"""
+        clear_results_directory(self)
+        if hasattr(self, 'dashboard_loader'):
+            QTimer.singleShot(1000, lambda: self.dashboard_loader.load_data(force=True))
+
     def _init_dashboard_page(self):
         """Initialize the dashboard page"""
         self.dashboard_page = QWidget()
         self.dashboard_layout = QVBoxLayout()
         self.dashboard_page.setLayout(self.dashboard_layout)
+        
+        # Refresh button for dashboard
+        refresh_layout = QHBoxLayout()
+        self.dashboard_refresh = QPushButton("Refresh Dashboard")
+        self.dashboard_refresh.clicked.connect(lambda: self.dashboard_loader.load_data(force=True))
+        refresh_layout.addWidget(self.dashboard_refresh)
+        refresh_layout.addStretch()
+        self.dashboard_layout.addLayout(refresh_layout)
         
         # Stats Cards
         stats_layout = QHBoxLayout()
@@ -296,8 +363,8 @@ class RobotTestRunner(QWidget):
         
         # Recent Runs Table
         self.recent_runs_table = QTableWidget()
-        self.recent_runs_table.setColumnCount(3)
-        self.recent_runs_table.setHorizontalHeaderLabels(["Test Suite", "Timestamp", "Status"])
+        self.recent_runs_table.setColumnCount(4)
+        self.recent_runs_table.setHorizontalHeaderLabels(["Test Suite", "Timestamp", "Status", "Duration"])
         self.recent_runs_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.recent_runs_table.setMaximumHeight(200)
         self.dashboard_layout.addWidget(QLabel("Recent Test Runs:"))
@@ -306,7 +373,7 @@ class RobotTestRunner(QWidget):
         # Data loader
         self.dashboard_loader = DashboardDataLoader()
         self.dashboard_loader.data_loaded.connect(self.update_dashboard)
-        QTimer.singleShot(100, self.dashboard_loader.load_data)
+        QTimer.singleShot(100, lambda: self.dashboard_loader.load_data(force=True))
         
         self.stacked_widget.addWidget(self.dashboard_page)
 
@@ -315,6 +382,14 @@ class RobotTestRunner(QWidget):
         self.analytics_page = QWidget()
         self.analytics_layout = QVBoxLayout()
         self.analytics_page.setLayout(self.analytics_layout)
+        
+        # Refresh button for analytics
+        refresh_layout = QHBoxLayout()
+        self.analytics_refresh = QPushButton("Refresh Analytics")
+        self.analytics_refresh.clicked.connect(lambda: self.dashboard_loader.load_data(force=True))
+        refresh_layout.addWidget(self.analytics_refresh)
+        refresh_layout.addStretch()
+        self.analytics_layout.addLayout(refresh_layout)
         
         # Time Series Chart
         self.time_series_fig, self.time_series_ax = plt.subplots(figsize=(6, 4))
@@ -365,12 +440,12 @@ class RobotTestRunner(QWidget):
     def show_dashboard(self):
         """Show dashboard and refresh data"""
         self.show_page(self.dashboard_page)
-        self.dashboard_loader.load_data()
+        self.dashboard_loader.load_data(force=True)
 
     def show_analytics(self):
         """Show analytics and refresh data"""
         self.show_page(self.analytics_page)
-        self.dashboard_loader.load_data()
+        self.dashboard_loader.load_data(force=True)
 
     def show_main_content(self):
         """Show the main test selection content"""
@@ -427,35 +502,42 @@ class RobotTestRunner(QWidget):
             # Update pie chart
             pie_series = QPieSeries()
             if data['passed'] > 0:
-                pie_series.append("Passed", data['passed'])
+                passed_slice = pie_series.append("Passed", data['passed'])
+                passed_slice.setColor(QColor("#2ecc71"))
             if data['failed'] > 0:
-                pie_series.append("Failed", data['failed'])
+                failed_slice = pie_series.append("Failed", data['failed'])
+                failed_slice.setColor(QColor("#e74c3c"))
             
             pie_chart = QChart()
             pie_chart.addSeries(pie_series)
             pie_chart.setTitle("Test Results Distribution")
             pie_chart.legend().setVisible(True)
-            
-            # Set animation options
             pie_chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-            
             self.pie_chart_view.setChart(pie_chart)
             
-            # Update bar chart
-            bar_set = QBarSet("Execution Time")
-            bar_set.append(avg_time)
+            # Update bar chart with execution times
+            bar_set = QBarSet("Execution Time (s)")
+            if data['recent_runs']:
+                recent_runs = sorted(data['recent_runs'], key=lambda x: x['timestamp'])
+                categories = []
+                for run in recent_runs[-5:]:  # Show last 5 runs
+                    bar_set.append(run['duration'])
+                    categories.append(run['suite'][:15] + "\n" + 
+                                    run['timestamp'].strftime("%m-%d %H:%M"))
+            else:
+                bar_set.append(0)
+                categories = ["No data"]
             
             bar_series = QBarSeries()
             bar_series.append(bar_set)
             
             bar_chart = QChart()
             bar_chart.addSeries(bar_series)
-            bar_chart.setTitle("Average Execution Time")
+            bar_chart.setTitle("Test Execution Times")
             bar_chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
             
-            # Add axes
             axis_x = QBarCategoryAxis()
-            axis_x.append("Execution Time")
+            axis_x.append(categories)
             bar_chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
             bar_series.attachAxis(axis_x)
             
@@ -465,14 +547,24 @@ class RobotTestRunner(QWidget):
             
             self.bar_chart_view.setChart(bar_chart)
             
-            # Update recent runs table
+            # Update recent runs table with more details
             self.recent_runs_table.setRowCount(0)
             for run in data['recent_runs'][:5]:  # Show only 5 most recent
                 row = self.recent_runs_table.rowCount()
                 self.recent_runs_table.insertRow(row)
+                
                 self.recent_runs_table.setItem(row, 0, QTableWidgetItem(run['suite']))
                 self.recent_runs_table.setItem(row, 1, QTableWidgetItem(run['timestamp'].strftime("%Y-%m-%d %H:%M:%S")))
-                self.recent_runs_table.setItem(row, 2, QTableWidgetItem(run['status']))
+                
+                status_item = QTableWidgetItem(run['status'])
+                if run['status'] == 'PASS':
+                    status_item.setBackground(QColor("#2ecc71"))
+                else:
+                    status_item.setBackground(QColor("#e74c3c"))
+                self.recent_runs_table.setItem(row, 2, status_item)
+                
+                duration_item = QTableWidgetItem(f"{run['duration']:.2f}s")
+                self.recent_runs_table.setItem(row, 3, duration_item)
                 
         except Exception as e:
             print(f"Error updating dashboard: {e}")
@@ -483,19 +575,30 @@ class RobotTestRunner(QWidget):
             if not data:
                 return
                 
+            # Prepare data for analytics
             dates = []
             execution_times = []
             failure_counts = []
+            test_details = []
             
             if data.get('recent_runs'):
+                # Group by date for time series
+                date_groups = {}
                 for run in data['recent_runs']:
-                    dates.append(run['timestamp'].date())
-                    # Calculate execution time (simplified for example)
-                    execution_time = next((t for t in data['execution_times']), 0)
-                    execution_times.append(execution_time)
-                    # Calculate failures (simplified for example)
-                    failure_count = data['failed'] if run['status'] == 'FAIL' else 0
-                    failure_counts.append(failure_count)
+                    date = run['timestamp'].date()
+                    if date not in date_groups:
+                        date_groups[date] = {
+                            'execution_time': 0,
+                            'failures': 0,
+                            'tests': 0
+                        }
+                    date_groups[date]['execution_time'] += run.get('duration', 0)
+                    date_groups[date]['failures'] += 1 if run['status'] == 'FAIL' else 0
+                    date_groups[date]['tests'] += 1
+                
+                dates = sorted(date_groups.keys())
+                execution_times = [date_groups[d]['execution_time'] for d in dates]
+                failure_counts = [date_groups[d]['failures'] for d in dates]
             
             if not dates:  # No data found
                 dates = [datetime.now().date()]
@@ -504,20 +607,61 @@ class RobotTestRunner(QWidget):
             
             # Time Series Chart
             self.time_series_ax.clear()
-            self.time_series_ax.plot(dates, execution_times, marker='o', color='#3498db')
-            self.time_series_ax.set_title('Test Execution Over Time', pad=20)
+            if len(dates) > 1:
+                self.time_series_ax.plot(dates, execution_times, marker='o', color='#3498db', label='Total Time')
+                self.time_series_ax.set_ylabel('Execution Time (s)', color='#3498db')
+                self.time_series_ax.tick_params(axis='y', labelcolor='#3498db')
+                
+                # Add failure rate as second y-axis
+                ax2 = self.time_series_ax.twinx()
+                failure_rates = [f/t if t > 0 else 0 for f, t in zip(failure_counts, [date_groups[d]['tests'] for d in dates])]
+                ax2.plot(dates, failure_rates, marker='x', color='#e74c3c', linestyle='--', label='Failure Rate')
+                ax2.set_ylabel('Failure Rate', color='#e74c3c')
+                ax2.tick_params(axis='y', labelcolor='#e74c3c')
+                
+                self.time_series_ax.legend(loc='upper left')
+                ax2.legend(loc='upper right')
+            else:
+                self.time_series_ax.text(0.5, 0.5, 'Not enough data for time series', 
+                                       ha='center', va='center', transform=self.time_series_ax.transAxes)
+            
+            self.time_series_ax.set_title('Test Execution Trends', pad=20)
             self.time_series_ax.set_xlabel('Date')
-            self.time_series_ax.set_ylabel('Execution Time (s)')
             self.time_series_ax.grid(True, linestyle='--', alpha=0.6)
             self.time_series_fig.tight_layout()
             self.time_series_canvas.draw()
             
             # Failure Analysis Chart
             self.failure_ax.clear()
-            self.failure_ax.bar(dates, failure_counts, color='#e74c3c')
-            self.failure_ax.set_title('Failure Patterns', pad=20)
-            self.failure_ax.set_xlabel('Date')
-            self.failure_ax.set_ylabel('Failure Count')
+            if any(failure_counts):
+                # Group failures by test name if available
+                if data.get('test_details'):
+                    failure_reasons = {}
+                    for test in data['test_details']:
+                        if test['status'] == 'FAIL':
+                            key = f"{test['suite']}.{test['test']}"
+                            failure_reasons[key] = failure_reasons.get(key, 0) + 1
+                    
+                    if failure_reasons:
+                        reasons = sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True)[:10]
+                        labels = [r[0] for r in reasons]
+                        counts = [r[1] for r in reasons]
+                        
+                        self.failure_ax.barh(labels, counts, color='#e74c3c')
+                        self.failure_ax.set_title('Top 10 Failing Tests', pad=20)
+                        self.failure_ax.set_xlabel('Failure Count')
+                    else:
+                        self.failure_ax.text(0.5, 0.5, 'No failure data available', 
+                                          ha='center', va='center', transform=self.failure_ax.transAxes)
+                else:
+                    self.failure_ax.bar([d.strftime("%m-%d") for d in dates], failure_counts, color='#e74c3c')
+                    self.failure_ax.set_title('Daily Failures', pad=20)
+                    self.failure_ax.set_xlabel('Date')
+                    self.failure_ax.set_ylabel('Failure Count')
+            else:
+                self.failure_ax.text(0.5, 0.5, 'No failures recorded', 
+                                    ha='center', va='center', transform=self.failure_ax.transAxes)
+            
             self.failure_ax.grid(True, linestyle='--', alpha=0.6)
             self.failure_fig.tight_layout()
             self.failure_canvas.draw()
