@@ -1,5 +1,9 @@
-PyQt6
-robotframework
-robotframework-pabot
-pytest
-PyQt6-Charts
+PyQt6==6.6.0
+PyQt6-Charts==6.6.0
+PyQt6-Qt6==6.6.0
+PyQt6-sip==13.6.0
+robotframework==6.1.1
+robotframework-pabot==2.16.0
+numpy==1.26.0
+pandas==2.1.1
+matplotlib==3.8.0
