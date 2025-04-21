@@ -42,3 +42,8 @@ def clear_results_directory(window):
     else:
         window.resultLabel.setText("No Results folder found")
         window.resultLabel.setStyleSheet("color: #ad402a")
+
+# Add this function
+def update_output_display(window, path):
+    window.outputPathLabel.setText(path)
+    window.output_directory = path

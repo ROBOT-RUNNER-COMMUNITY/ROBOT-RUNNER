@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
                             QListWidget, QListWidgetItem, QHBoxLayout, 
-                            QFrame, QCheckBox, QSpinBox, QScrollArea)
+                            QFrame, QCheckBox, QSpinBox, QScrollArea,
+                            QStackedWidget, QSizePolicy)
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from ui.logo_splash import LogoSplash
 from ui.styles import apply_styles
@@ -16,13 +17,13 @@ class RobotTestRunner(QWidget):
     def __init__(self):
         super().__init__()
         
-        # First initialize all attributes
+        # Initialize attributes
         self.version_label = ""
         self.test_directory = ""
         self.output_directory = ""
-        self.drag_position = QPoint()  # Initialize drag_position
-
-        # Then load configuration
+        self.drag_position = QPoint()
+        
+        # Load configuration
         self._load_config()
         
         # Initialize UI
@@ -39,7 +40,7 @@ class RobotTestRunner(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setFixedSize(1300, 700)
         
-        # Main layout structure
+        # Main layout
         self.main_h_layout = QHBoxLayout()
         self.main_h_layout.setContentsMargins(0, 0, 0, 0)
         self.main_h_layout.setSpacing(0)
@@ -58,9 +59,13 @@ class RobotTestRunner(QWidget):
         
         # Title bar
         self.title_bar = TitleBar("Robot Framework Test Runner", self)
-        self.right_layout.addLayout(self.title_bar)
+        self.right_layout.addWidget(self.title_bar)
         
-        # Scrollable content area
+        # Stacked widget for pages
+        self.stacked_widget = QStackedWidget()
+        self.right_layout.addWidget(self.stacked_widget)
+        
+        # Main content area (contains all functionality)
         self.content_scroll = QScrollArea()
         self.content_scroll.setWidgetResizable(True)
         self.content_widget = QWidget()
@@ -73,48 +78,17 @@ class RobotTestRunner(QWidget):
         
         # Initialize components
         self._init_components()
+        self._init_empty_pages()
         self._connect_signals()
         
         apply_styles(self)
+        
+        # Show main content by default
+        self.show_main_content()
 
     def _init_components(self):
         """Initialize all UI components"""
-        self.init_directory_controls()
-        self.init_test_selection()
-        self.init_parameters()
-        self.init_results_controls()
-        self.init_version_label()
-
-    def _connect_signals(self):
-        """Connect all signals"""
-        self.sidebar.testSelectionClicked.connect(self.show_test_selection)
-        self.sidebar.runTestsClicked.connect(lambda: run_tests(self))
-        self.sidebar.resultsClicked.connect(self.show_results)
-
-    def init_version_label(self):
-        """Initialize version label using the properly loaded version"""
-        self.version_layout = QVBoxLayout()
-        self.version = QLabel(self.version_label)  # Now properly defined
-        self.version_layout.addWidget(self.version)
-        self.content_layout.addLayout(self.version_layout)
-
-    def show_test_selection(self):
-        """Show the test selection section"""
-        self.testList.setVisible(True)
-        self.runButton.setVisible(True)
-        # Hide other sections as needed
-
-    def show_results(self):
-        """Show results section"""
-        self.resultLabel.setVisible(True)
-        self.reportButton.setVisible(True)
-        self.logButton.setVisible(True)
-        # Show other result-related widgets
-
-    def show_splash(self):
-        self.splash = LogoSplash(self)  # No need to call show() here as it's done in __init__
-
-    def init_directory_controls(self):
+        # Directory controls
         self.label = QLabel("Select a folder containing .robot files")
         self.content_layout.addWidget(self.label)
         
@@ -122,16 +96,13 @@ class RobotTestRunner(QWidget):
         self.selectButton.clicked.connect(lambda: select_directory(self))
         self.content_layout.addWidget(self.selectButton)
 
-    def init_test_selection(self):
-        # Horizontal layout for select all and refresh
+        # Test selection controls
         self.layout_horizontal = QHBoxLayout()
 
-        # Select all checkbox
         self.selectAllCheckBox = QCheckBox("Select all tests")
         self.selectAllCheckBox.stateChanged.connect(self.toggle_select_all_tests)
         self.layout_horizontal.addWidget(self.selectAllCheckBox)
 
-        # Refresh button with loading indicator
         self.refreshLayout = QHBoxLayout()
         self.refreshButton = QPushButton("Refresh tests")
         self.refreshButton.setFixedSize(100, 40)
@@ -150,7 +121,7 @@ class RobotTestRunner(QWidget):
         self.testList = QListWidget()
         self.content_layout.addWidget(self.testList)
 
-    def init_parameters(self):
+        # Parameters
         paramLayout = QHBoxLayout()
         self.processLabel = QLabel("Number of subprocesses :")
         self.processInput = QSpinBox()
@@ -162,8 +133,12 @@ class RobotTestRunner(QWidget):
         paramLayout.addWidget(self.processInput)
         self.content_layout.addLayout(paramLayout)
 
-    def init_results_controls(self):
-        # File selection
+        # Run button
+        self.runButton = QPushButton("Run selected tests")
+        self.runButton.clicked.connect(lambda: run_tests(self))
+        self.content_layout.addWidget(self.runButton)
+
+        # Results controls
         self.fileLabel = QLabel("Select result storage location :")
         self.content_layout.addWidget(self.fileLabel)
         
@@ -177,11 +152,6 @@ class RobotTestRunner(QWidget):
         fileLayout.addWidget(self.clearButton)
         self.content_layout.addLayout(fileLayout)
 
-        # Run button
-        self.runButton = QPushButton("Run selected tests")
-        self.runButton.clicked.connect(lambda: run_tests(self))
-        self.content_layout.addWidget(self.runButton)
-        
         # Results label
         self.resultLabel = QLabel("Test Results :")
         self.content_layout.addWidget(self.resultLabel)
@@ -195,24 +165,78 @@ class RobotTestRunner(QWidget):
         self.logButton = QPushButton("Open Log")
         self.logButton.clicked.connect(lambda: open_log(self))
         reportLogLayout.addWidget(self.logButton)
-        self.content_layout.addLayout(reportLogLayout)
-        
+
         self.exportResults = QPushButton("Export Results")
         self.exportResults.clicked.connect(lambda: export_results(self))
         reportLogLayout.addWidget(self.exportResults)
         self.content_layout.addLayout(reportLogLayout)
 
-
-    def init_version_label(self):
+        # Version label
         self.version_layout = QVBoxLayout()
         self.version = QLabel(f"{self.version_label}")
         self.version_layout.addWidget(self.version)
         self.content_layout.addLayout(self.version_layout)
 
+    def _init_empty_pages(self):
+        """Initialize empty pages for other menu items"""
+        # Run Tests Page
+        self.run_tests_page = QWidget()
+        self.run_tests_layout = QVBoxLayout()
+        self.run_tests_page.setLayout(self.run_tests_layout)
+        label = QLabel("Run Tests Page - Under Construction")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.run_tests_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.run_tests_page)
+        
+        # Results Page
+        self.results_page = QWidget()
+        self.results_layout = QVBoxLayout()
+        self.results_page.setLayout(self.results_layout)
+        label = QLabel("Results Page - Under Construction")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.results_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.results_page)
+        
+        # Settings Page
+        self.settings_page = QWidget()
+        self.settings_layout = QVBoxLayout()
+        self.settings_page.setLayout(self.settings_layout)
+        label = QLabel("Settings Page - Under Construction")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.settings_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.settings_page)
+
+    def _connect_signals(self):
+        """Connect all signals"""
+        # Test Selection shows main content
+        self.sidebar.testSelectionClicked.connect(self.show_main_content)
+        
+        # Other buttons show empty pages
+        self.sidebar.runTestsClicked.connect(lambda: self.show_page(self.run_tests_page))
+        self.sidebar.resultsClicked.connect(lambda: self.show_page(self.results_page))
+        self.sidebar.settingsClicked.connect(lambda: self.show_page(self.settings_page))
+        
+        # Keep existing signal connections
+        self.sidebar.runTestsClicked.connect(lambda: run_tests(self))
+
+    def show_main_content(self):
+        """Show the main content area"""
+        self.content_scroll.show()
+        self.stacked_widget.hide()
+
+    def show_page(self, page):
+        """Show a specific page from the stacked widget"""
+        self.content_scroll.hide()
+        self.stacked_widget.show()
+        self.stacked_widget.setCurrentWidget(page)
+
     def toggle_select_all_tests(self, state):
         check_state = Qt.CheckState.Checked if state else Qt.CheckState.Unchecked
         for i in range(self.testList.count()):
             self.testList.item(i).setCheckState(check_state)
+
+    def show_splash(self):
+        self.splash = LogoSplash(self)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
