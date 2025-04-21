@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, 
-                            QSizePolicy, QSpacerItem, QLabel, QFrame)
+                             QSizePolicy, QSpacerItem, QLabel, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPixmap
 
 class SideBar(QWidget):
     testSelectionClicked = pyqtSignal()
@@ -21,45 +21,58 @@ class SideBar(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.setSpacing(5)
         layout.setContentsMargins(10, 20, 10, 20)
-        
-        # Logo/Header
-        self.logo = QLabel("Robot Runner")
-        self.logo.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
-        self.logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.logo)
-        
+
+        # Logo/Header with icon
+        logo_layout = QHBoxLayout()
+        logo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        logo_icon = QLabel()
+        pixmap = QPixmap("images/Logo.png").scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        logo_icon.setPixmap(pixmap)
+        logo_icon.setStyleSheet("background: transparent;")
+
+        logo_text = QLabel("Robot Runner")
+        logo_text.setStyleSheet("font-size: 18px; font-weight: bold; color: white; background: transparent;")
+        logo_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        logo_layout.addWidget(logo_icon)
+        logo_layout.addSpacing(8)
+        logo_layout.addWidget(logo_text)
+
+        layout.addLayout(logo_layout)
+
         # Separator
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setStyleSheet("color: #34495e;")
         layout.addWidget(separator)
-        
+
         # Main Navigation Section
         self.btn_dashboard = QPushButton(QIcon("images/dashboard.png"), " Dashboard")
-        self.btn_tests = QPushButton(QIcon("images/Logo.png"), " Test Selection")
-        
+        self.btn_tests = QPushButton(QIcon("images/Tests.png"), " Test Selection")
+
         # Analytics Section
         separator_analytics = QFrame()
         separator_analytics.setFrameShape(QFrame.Shape.HLine)
         separator_analytics.setStyleSheet("color: #34495e;")
-        
+
         self.btn_analytics = QPushButton(QIcon("images/analytics.png"), " Analytics")
-        
+
         # Settings Section
         separator_settings = QFrame()
         separator_settings.setFrameShape(QFrame.Shape.HLine)
         separator_settings.setStyleSheet("color: #34495e;")
-        
+
         self.btn_settings = QPushButton(QIcon("images/settings.png"), " Settings")
         self.btn_help = QPushButton(QIcon("images/help.png"), " Help")
 
         # Add all buttons to layout
         layout.addWidget(self.btn_dashboard)
         layout.addWidget(self.btn_tests)
-        
+
         layout.addWidget(separator_analytics)
         layout.addWidget(self.btn_analytics)
-        
+
         layout.addWidget(separator_settings)
         layout.addWidget(self.btn_settings)
         layout.addWidget(self.btn_help)
@@ -77,8 +90,8 @@ class SideBar(QWidget):
 
         # Style all buttons consistently
         for btn in [self.btn_dashboard, self.btn_tests, 
-                   self.btn_analytics, self.btn_settings, 
-                   self.btn_help]:
+                    self.btn_analytics, self.btn_settings, 
+                    self.btn_help]:
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(40)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
