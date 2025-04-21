@@ -179,46 +179,53 @@ class RobotTestRunner(QWidget):
 
     def _init_empty_pages(self):
         """Initialize empty pages for other menu items"""
-        # Run Tests Page
-        self.run_tests_page = QWidget()
-        self.run_tests_layout = QVBoxLayout()
-        self.run_tests_page.setLayout(self.run_tests_layout)
-        label = QLabel("Run Tests Page - Under Construction")
+        # Dashboard Page
+        self.dashboard_page = QWidget()
+        self.dashboard_layout = QVBoxLayout()
+        self.dashboard_page.setLayout(self.dashboard_layout)
+        label = QLabel("Dashboard Page\n\n- Recent test runs\n- Statistics\n- Quick actions")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.run_tests_layout.addWidget(label)
-        self.stacked_widget.addWidget(self.run_tests_page)
+        self.dashboard_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.dashboard_page)
         
-        # Results Page
-        self.results_page = QWidget()
-        self.results_layout = QVBoxLayout()
-        self.results_page.setLayout(self.results_layout)
-        label = QLabel("Results Page - Under Construction")
+        # Analytics Page
+        self.analytics_page = QWidget()
+        self.analytics_layout = QVBoxLayout()
+        self.analytics_page.setLayout(self.analytics_layout)
+        label = QLabel("Analytics Page\n\n- Test execution trends\n- Failure analysis\n- Performance metrics")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.results_layout.addWidget(label)
-        self.stacked_widget.addWidget(self.results_page)
+        self.analytics_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.analytics_page)
         
         # Settings Page
         self.settings_page = QWidget()
         self.settings_layout = QVBoxLayout()
         self.settings_page.setLayout(self.settings_layout)
-        label = QLabel("Settings Page - Under Construction")
+        label = QLabel("Settings Page\n\n- Application preferences\n- Test configurations\n- UI customization")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.settings_layout.addWidget(label)
         self.stacked_widget.addWidget(self.settings_page)
+        
+        # Help Page
+        self.help_page = QWidget()
+        self.help_layout = QVBoxLayout()
+        self.help_page.setLayout(self.help_layout)
+        label = QLabel("Help Page\n\n- User manual\n- Troubleshooting\n- Contact support")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.help_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.help_page)
 
     def _connect_signals(self):
         """Connect all signals"""
         # Test Selection shows main content
         self.sidebar.testSelectionClicked.connect(self.show_main_content)
         
-        # Other buttons show empty pages
-        self.sidebar.runTestsClicked.connect(lambda: self.show_page(self.run_tests_page))
-        self.sidebar.resultsClicked.connect(lambda: self.show_page(self.results_page))
+        # Other buttons show their respective pages
+        self.sidebar.dashboardClicked.connect(lambda: self.show_page(self.dashboard_page))
+        self.sidebar.analyticsClicked.connect(lambda: self.show_page(self.analytics_page))
         self.sidebar.settingsClicked.connect(lambda: self.show_page(self.settings_page))
+        self.sidebar.helpClicked.connect(lambda: self.show_page(self.help_page))
         
-        # Keep existing signal connections
-        self.sidebar.runTestsClicked.connect(lambda: run_tests(self))
-
     def show_main_content(self):
         """Show the main content area"""
         self.content_scroll.show()

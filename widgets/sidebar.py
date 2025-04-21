@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, 
-                            QSizePolicy, QSpacerItem, QLabel)
+                            QSizePolicy, QSpacerItem, QLabel, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 
 class SideBar(QWidget):
     testSelectionClicked = pyqtSignal()
-    runTestsClicked = pyqtSignal()
-    resultsClicked = pyqtSignal()
+    dashboardClicked = pyqtSignal()
+    analyticsClicked = pyqtSignal()
     settingsClicked = pyqtSignal()
+    helpClicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,27 +26,62 @@ class SideBar(QWidget):
         self.logo = QLabel("Robot Runner")
         self.logo.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
         self.logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.logo)
         
-        # Navigation Buttons
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet("color: #34495e;")
+        layout.addWidget(separator)
+        
+        # Main Navigation Section
+        self.btn_dashboard = QPushButton(QIcon("images/dashboard.png"), " Dashboard")
         self.btn_tests = QPushButton(QIcon("images/Logo.png"), " Test Selection")
-        self.btn_run = QPushButton(QIcon("images/check.png"), " Run Tests")
-        self.btn_results = QPushButton(QIcon("images/report.png"), " Results")
+        
+        # Analytics Section
+        separator_analytics = QFrame()
+        separator_analytics.setFrameShape(QFrame.Shape.HLine)
+        separator_analytics.setStyleSheet("color: #34495e;")
+        
+        self.btn_analytics = QPushButton(QIcon("images/analytics.png"), " Analytics")
+        
+        # Settings Section
+        separator_settings = QFrame()
+        separator_settings.setFrameShape(QFrame.Shape.HLine)
+        separator_settings.setStyleSheet("color: #34495e;")
+        
         self.btn_settings = QPushButton(QIcon("images/settings.png"), " Settings")
+        self.btn_help = QPushButton(QIcon("images/help.png"), " Help")
 
-        for btn in [self.btn_tests, self.btn_run, self.btn_results, self.btn_settings]:
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setMinimumHeight(40)
-            layout.addWidget(btn)
+        # Add all buttons to layout
+        layout.addWidget(self.btn_dashboard)
+        layout.addWidget(self.btn_tests)
+        
+        layout.addWidget(separator_analytics)
+        layout.addWidget(self.btn_analytics)
+        
+        layout.addWidget(separator_settings)
+        layout.addWidget(self.btn_settings)
+        layout.addWidget(self.btn_help)
 
         layout.addSpacerItem(QSpacerItem(20, 40, 
                               QSizePolicy.Policy.Minimum, 
                               QSizePolicy.Policy.Expanding))
 
         # Connect signals
+        self.btn_dashboard.clicked.connect(self.dashboardClicked.emit)
         self.btn_tests.clicked.connect(self.testSelectionClicked.emit)
-        self.btn_run.clicked.connect(self.runTestsClicked.emit)
-        self.btn_results.clicked.connect(self.resultsClicked.emit)
+        self.btn_analytics.clicked.connect(self.analyticsClicked.emit)
         self.btn_settings.clicked.connect(self.settingsClicked.emit)
+        self.btn_help.clicked.connect(self.helpClicked.emit)
+
+        # Style all buttons consistently
+        for btn in [self.btn_dashboard, self.btn_tests, 
+                   self.btn_analytics, self.btn_settings, 
+                   self.btn_help]:
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setMinimumHeight(40)
+            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.setLayout(layout)
 
@@ -68,5 +104,8 @@ class SideBar(QWidget):
             }
             QPushButton:pressed {
                 background: #2980b9;
+            }
+            QLabel {
+                margin-bottom: 15px;
             }
         """)
