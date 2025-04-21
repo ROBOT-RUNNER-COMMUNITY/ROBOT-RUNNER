@@ -1,50 +1,110 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
-                            QListWidget, QListWidgetItem, QHBoxLayout, 
-                            QFrame, QCheckBox, QSpinBox, QScrollArea,
-                            QStackedWidget, QSizePolicy, QTableWidget,
-                            QHeaderView, QTableWidgetItem)
-from PyQt6.QtCore import Qt, QPoint, pyqtSignal
+import os
+import sys
+import xml.etree.ElementTree as ET
+from datetime import datetime
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use('Qt5Agg')  # Set the backend before importing pyplot
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
+    QListWidget, QListWidgetItem, QFrame, QCheckBox, QSpinBox,
+    QScrollArea, QStackedWidget, QSizePolicy, QTableWidget,
+    QHeaderView, QTableWidgetItem, QApplication
+)
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QColor, QPainter, QFont
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSet, QBarSeries, QBarCategoryAxis, QValueAxis
+
+# Import local modules
 from ui.logo_splash import LogoSplash
 from ui.styles import apply_styles
 from utils.file_utils import select_directory, select_output_directory, clear_results_directory
 from utils.test_utils import export_results, load_tests, run_tests, open_report, open_log
-from utils.dashboard_utils import DashboardDataLoader
 from widgets.sidebar import SideBar
 from widgets.title_bar import TitleBar
-import xml.etree.ElementTree as ET
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import pandas as pd
-from datetime import datetime
-import os
+
+class DashboardDataLoader(QObject):
+    data_loaded = pyqtSignal(dict)
+    
+    def __init__(self):
+        super().__init__()
+        self.results_dir = os.path.join("tests-for-validation", "Results")
+        
+    def load_data(self):
+        stats = {
+            'total_tests': 0,
+            'passed': 0,
+            'failed': 0,
+            'execution_times': [],
+            'recent_runs': []
+        }
+        
+        try:
+            if os.path.exists(self.results_dir):
+                for root, _, files in os.walk(self.results_dir):
+                    if 'output.xml' in files:
+                        xml_path = os.path.join(root, 'output.xml')
+                        try:
+                            tree = ET.parse(xml_path)
+                            root = tree.getroot()
+                            
+                            # Get test statistics
+                            for stat in root.findall('.//statistics/total/stat'):
+                                if stat.get('name') == 'All Tests':
+                                    stats['total_tests'] += int(stat.find('total').text)
+                                    stats['passed'] += int(stat.find('pass').text)
+                                    stats['failed'] += int(stat.find('fail').text)
+                            
+                            # Get suite information
+                            for suite in root.findall('.//suite'):
+                                status = suite.find('.//status')
+                                if status is not None:
+                                    timestamp = datetime.fromtimestamp(float(status.get('starttime')))
+                                    stats['recent_runs'].append({
+                                        'suite': suite.get('name'),
+                                        'timestamp': timestamp,
+                                        'status': 'PASS' if status.get('status') == 'PASS' else 'FAIL'
+                                    })
+                                    stats['execution_times'].append(
+                                        float(status.get('endtime')) - float(status.get('starttime'))
+                                    
+                        except ET.ParseError as e:
+                            print(f"Error parsing {xml_path}: {e}")
+                            continue
+            
+            if stats['recent_runs']:
+                stats['recent_runs'].sort(key=lambda x: x['timestamp'], reverse=True)
+                
+        except Exception as e:
+            print(f"Error loading dashboard data: {e}")
+        
+        self.data_loaded.emit(stats)
 
 class RobotTestRunner(QWidget):
     windowStateChanged = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
-        
-        # Initialize attributes
         self.version_label = ""
         self.test_directory = ""
         self.output_directory = ""
         self.drag_position = QPoint()
-        
-        # Load configuration
         self._load_config()
-        
-        # Initialize UI
         self.init_ui()
         self.show_splash()
 
     def _load_config(self):
-        """Load version from config file"""
-        tree = ET.parse('config.xml')
-        root = tree.getroot()
-        self.version_label = f"© Robot Runner {root[0].text}"
+        try:
+            tree = ET.parse('config.xml')
+            root = tree.getroot()
+            self.version_label = f"© Robot Runner {root[0].text}"
+        except Exception as e:
+            print(f"Error loading config: {e}")
+            self.version_label = "© Robot Runner"
 
     def init_ui(self):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
@@ -75,7 +135,7 @@ class RobotTestRunner(QWidget):
         self.stacked_widget = QStackedWidget()
         self.right_layout.addWidget(self.stacked_widget)
         
-        # Main content area (contains all functionality)
+        # Main content area
         self.content_scroll = QScrollArea()
         self.content_scroll.setWidgetResizable(True)
         self.content_widget = QWidget()
@@ -88,16 +148,17 @@ class RobotTestRunner(QWidget):
         
         # Initialize components
         self._init_components()
-        self._init_empty_pages()
+        self._init_dashboard_page()
+        self._init_analytics_page()
+        self._init_settings_page()
+        self._init_help_page()
         self._connect_signals()
         
         apply_styles(self)
-        
-        # Show main content by default
         self.show_main_content()
 
     def _init_components(self):
-        """Initialize all UI components"""
+        """Initialize test selection components"""
         # Directory controls
         self.label = QLabel("Select a folder containing .robot files")
         self.content_layout.addWidget(self.label)
@@ -108,7 +169,6 @@ class RobotTestRunner(QWidget):
 
         # Test selection controls
         self.layout_horizontal = QHBoxLayout()
-
         self.selectAllCheckBox = QCheckBox("Select all tests")
         self.selectAllCheckBox.stateChanged.connect(self.toggle_select_all_tests)
         self.layout_horizontal.addWidget(self.selectAllCheckBox)
@@ -123,7 +183,6 @@ class RobotTestRunner(QWidget):
         self.loadingLabel.setFixedSize(30, 30)
         self.loadingLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.refreshLayout.addWidget(self.loadingLabel)
-
         self.layout_horizontal.addLayout(self.refreshLayout)
         self.content_layout.addLayout(self.layout_horizontal)
 
@@ -133,7 +192,7 @@ class RobotTestRunner(QWidget):
 
         # Parameters
         paramLayout = QHBoxLayout()
-        self.processLabel = QLabel("Number of subprocesses :")
+        self.processLabel = QLabel("Number of subprocesses:")
         self.processInput = QSpinBox()
         self.processInput.setValue(2)
         self.processInput.setFixedWidth(50)
@@ -149,7 +208,7 @@ class RobotTestRunner(QWidget):
         self.content_layout.addWidget(self.runButton)
 
         # Results controls
-        self.fileLabel = QLabel("Select result storage location :")
+        self.fileLabel = QLabel("Select result storage location:")
         self.content_layout.addWidget(self.fileLabel)
         
         fileLayout = QHBoxLayout()
@@ -163,7 +222,7 @@ class RobotTestRunner(QWidget):
         self.content_layout.addLayout(fileLayout)
 
         # Results label
-        self.resultLabel = QLabel("Test Results :")
+        self.resultLabel = QLabel("Test Results:")
         self.content_layout.addWidget(self.resultLabel)
         
         # Report and log buttons
@@ -183,19 +242,18 @@ class RobotTestRunner(QWidget):
 
         # Version label
         self.version_layout = QVBoxLayout()
-        self.version = QLabel(f"{self.version_label}")
+        self.version = QLabel(self.version_label)
         self.version_layout.addWidget(self.version)
         self.content_layout.addLayout(self.version_layout)
 
     def _init_dashboard_page(self):
-        """Initialize the dashboard page with widgets"""
+        """Initialize the dashboard page"""
         self.dashboard_page = QWidget()
         self.dashboard_layout = QVBoxLayout()
         self.dashboard_page.setLayout(self.dashboard_layout)
         
-        # Stats Cards Row
+        # Stats Cards
         stats_layout = QHBoxLayout()
-        
         self.total_tests_card = self._create_stat_card("Total Tests", "0")
         self.passed_tests_card = self._create_stat_card("Passed", "0", "#2ecc71")
         self.failed_tests_card = self._create_stat_card("Failed", "0", "#e74c3c")
@@ -205,8 +263,9 @@ class RobotTestRunner(QWidget):
         stats_layout.addWidget(self.passed_tests_card)
         stats_layout.addWidget(self.failed_tests_card)
         stats_layout.addWidget(self.avg_time_card)
+        self.dashboard_layout.addLayout(stats_layout)
         
-        # Charts Row
+        # Charts
         charts_layout = QHBoxLayout()
         
         # Pie Chart
@@ -219,6 +278,7 @@ class RobotTestRunner(QWidget):
         
         charts_layout.addWidget(self.pie_chart_view)
         charts_layout.addWidget(self.bar_chart_view)
+        self.dashboard_layout.addLayout(charts_layout)
         
         # Recent Runs Table
         self.recent_runs_table = QTableWidget()
@@ -226,22 +286,18 @@ class RobotTestRunner(QWidget):
         self.recent_runs_table.setHorizontalHeaderLabels(["Test Suite", "Timestamp", "Status"])
         self.recent_runs_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.recent_runs_table.setMaximumHeight(200)
-        
-        # Add to main layout
-        self.dashboard_layout.addLayout(stats_layout)
-        self.dashboard_layout.addLayout(charts_layout)
         self.dashboard_layout.addWidget(QLabel("Recent Test Runs:"))
         self.dashboard_layout.addWidget(self.recent_runs_table)
         
         # Data loader
         self.dashboard_loader = DashboardDataLoader()
         self.dashboard_loader.data_loaded.connect(self.update_dashboard)
-        self.dashboard_loader.load_data()
+        QTimer.singleShot(100, self.dashboard_loader.load_data)  # Initial load
         
         self.stacked_widget.addWidget(self.dashboard_page)
 
     def _init_analytics_page(self):
-        """Initialize the analytics page with widgets"""
+        """Initialize the analytics page"""
         self.analytics_page = QWidget()
         self.analytics_layout = QVBoxLayout()
         self.analytics_page.setLayout(self.analytics_layout)
@@ -256,25 +312,16 @@ class RobotTestRunner(QWidget):
         self.failure_canvas = FigureCanvas(self.failure_fig)
         self.failure_canvas.setMinimumSize(600, 400)
         
-        # Layout for charts
         charts_layout = QHBoxLayout()
         charts_layout.addWidget(self.time_series_canvas)
         charts_layout.addWidget(self.failure_canvas)
-        
-        # Add to main layout
         self.analytics_layout.addLayout(charts_layout)
         
-        # Load initial data
-        self.update_analytics()
-        
+        self.update_analytics()  # Initial update
         self.stacked_widget.addWidget(self.analytics_page)
 
-    def _init_empty_pages(self):
-        """Initialize all application pages"""
-        self._init_dashboard_page()
-        self._init_analytics_page()
-        
-        # Settings Page
+    def _init_settings_page(self):
+        """Initialize settings page"""
         self.settings_page = QWidget()
         self.settings_layout = QVBoxLayout()
         self.settings_page.setLayout(self.settings_layout)
@@ -282,8 +329,9 @@ class RobotTestRunner(QWidget):
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.settings_layout.addWidget(label)
         self.stacked_widget.addWidget(self.settings_page)
-        
-        # Help Page
+
+    def _init_help_page(self):
+        """Initialize help page"""
         self.help_page = QWidget()
         self.help_layout = QVBoxLayout()
         self.help_page.setLayout(self.help_layout)
@@ -294,15 +342,33 @@ class RobotTestRunner(QWidget):
 
     def _connect_signals(self):
         """Connect all signals"""
-        # Test Selection shows main content
         self.sidebar.testSelectionClicked.connect(self.show_main_content)
-        
-        # Other buttons show their respective pages
-        self.sidebar.dashboardClicked.connect(lambda: self.show_page(self.dashboard_page))
-        self.sidebar.analyticsClicked.connect(lambda: self.show_page(self.analytics_page))
+        self.sidebar.dashboardClicked.connect(self.show_dashboard)
+        self.sidebar.analyticsClicked.connect(self.show_analytics)
         self.sidebar.settingsClicked.connect(lambda: self.show_page(self.settings_page))
         self.sidebar.helpClicked.connect(lambda: self.show_page(self.help_page))
-        
+
+    def show_dashboard(self):
+        """Show dashboard and refresh data"""
+        self.show_page(self.dashboard_page)
+        self.dashboard_loader.load_data()
+
+    def show_analytics(self):
+        """Show analytics and refresh data"""
+        self.show_page(self.analytics_page)
+        self.update_analytics()
+
+    def show_main_content(self):
+        """Show the main test selection content"""
+        self.content_scroll.show()
+        self.stacked_widget.hide()
+
+    def show_page(self, page):
+        """Show a specific page"""
+        self.content_scroll.hide()
+        self.stacked_widget.show()
+        self.stacked_widget.setCurrentWidget(page)
+
     def _create_stat_card(self, title, value, color="#34495e"):
         """Create a statistic card widget"""
         card = QFrame()
@@ -333,112 +399,99 @@ class RobotTestRunner(QWidget):
 
     def update_dashboard(self, data):
         """Update dashboard with new data"""
-        if not data:
-            return
+        try:
+            if not data:
+                print("No data received for dashboard")
+                return
+                
+            # Update stat cards
+            self.total_tests_card.layout().itemAt(1).widget().setText(str(data['total_tests']))
+            self.passed_tests_card.layout().itemAt(1).widget().setText(str(data['passed']))
+            self.failed_tests_card.layout().itemAt(1).widget().setText(str(data['failed']))
             
-        # Update stat cards
-        self.total_tests_card.layout().itemAt(1).widget().setText(str(data['total_tests']))
-        self.passed_tests_card.layout().itemAt(1).widget().setText(str(data['passed']))
-        self.failed_tests_card.layout().itemAt(1).widget().setText(str(data['failed']))
-        
-        avg_time = np.mean(data['execution_times']) if data['execution_times'] else 0
-        self.avg_time_card.layout().itemAt(1).widget().setText(f"{avg_time:.2f}s")
-        
-        # Update pie chart
-        pie_series = QPieSeries()
-        if data['passed'] > 0:
-            pie_series.append("Passed", data['passed'])
-        if data['failed'] > 0:
-            pie_series.append("Failed", data['failed'])
-        
-        pie_chart = QChart()
-        pie_chart.addSeries(pie_series)
-        pie_chart.setTitle("Test Results Distribution")
-        pie_chart.legend().setVisible(True)
-        pie_chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
-        
-        self.pie_chart_view.setChart(pie_chart)
-        self.pie_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Update bar chart
-        bar_set = QBarSet("Execution Time")
-        bar_set.append(avg_time)
-        
-        bar_series = QBarSeries()
-        bar_series.append(bar_set)
-        
-        bar_chart = QChart()
-        bar_chart.addSeries(bar_series)
-        bar_chart.setTitle("Average Execution Time")
-        bar_chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
-        
-        axis_x = QBarCategoryAxis()
-        axis_x.append("All Tests")
-        bar_chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
-        
-        axis_y = QValueAxis()
-        bar_chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
-        bar_series.attachAxis(axis_y)
-        
-        self.bar_chart_view.setChart(bar_chart)
-        self.bar_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Update recent runs table
-        self.recent_runs_table.setRowCount(min(5, len(data['recent_runs'])))
-        for i, run in enumerate(data['recent_runs'][:5]):
-            self.recent_runs_table.setItem(i, 0, QTableWidgetItem(run['suite']))
-            self.recent_runs_table.setItem(i, 1, QTableWidgetItem(run['timestamp'].strftime("%Y-%m-%d %H:%M:%S")))
-            self.recent_runs_table.setItem(i, 2, QTableWidgetItem(run['status']))
-            if run['status'] == 'FAIL':
-                self.recent_runs_table.item(i, 2).setForeground(QColor(231, 76, 60))
+            avg_time = np.mean(data['execution_times']) if data['execution_times'] else 0
+            self.avg_time_card.layout().itemAt(1).widget().setText(f"{avg_time:.2f}s")
+            
+            # Update pie chart
+            pie_series = QPieSeries()
+            if data['passed'] > 0:
+                pie_series.append("Passed", data['passed'])
+            if data['failed'] > 0:
+                pie_series.append("Failed", data['failed'])
+            
+            pie_chart = QChart()
+            pie_chart.addSeries(pie_series)
+            pie_chart.setTitle("Test Results Distribution")
+            pie_chart.legend().setVisible(True)
+            pie_chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
+            self.pie_chart_view.setChart(pie_chart)
+            self.pie_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+            
+            # Update bar chart
+            bar_set = QBarSet("Execution Time")
+            bar_set.append(avg_time)
+            
+            bar_series = QBarSeries()
+            bar_series.append(bar_set)
+            
+            bar_chart = QChart()
+            bar_chart.addSeries(bar_series)
+            bar_chart.setTitle("Average Execution Time")
+            bar_chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
+            
+            axis_x = QBarCategoryAxis()
+            axis_x.append("All Tests")
+            bar_chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
+            
+            axis_y = QValueAxis()
+            bar_chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
+            bar_series.attachAxis(axis_y)
+            
+            self.bar_chart_view.setChart(bar_chart)
+            self.bar_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+            
+            # Update recent runs table
+            self.recent_runs_table.setRowCount(min(5, len(data['recent_runs'])))
+            for i, run in enumerate(data['recent_runs'][:5]):
+                self.recent_runs_table.setItem(i, 0, QTableWidgetItem(run['suite']))
+                self.recent_runs_table.setItem(i, 1, QTableWidgetItem(run['timestamp'].strftime("%Y-%m-%d %H:%M:%S")))
+                self.recent_runs_table.setItem(i, 2, QTableWidgetItem(run['status']))
+                if run['status'] == 'FAIL':
+                    self.recent_runs_table.item(i, 2).setForeground(QColor(231, 76, 60))
+                    
+        except Exception as e:
+            print(f"Error updating dashboard: {e}")
 
     def update_analytics(self):
         """Update analytics charts with data"""
         try:
-            # Sample data - replace with actual data loading
-            dates = pd.date_range(end=datetime.today(), periods=10).date
-            execution_times = np.random.randint(10, 60, size=10)
-            failure_counts = np.random.randint(0, 5, size=10)
+            # Sample data - replace with actual data from test results
+            dates = pd.date_range(end=datetime.now(), periods=7).date
+            execution_times = np.random.uniform(5, 20, size=7)
+            failure_counts = np.random.randint(0, 3, size=7)
             
-            # Time Series Analysis
+            # Time Series Chart
             self.time_series_ax.clear()
-            self.time_series_ax.plot(dates, execution_times, marker='o')
-            self.time_series_ax.set_title('Test Execution Over Time')
+            self.time_series_ax.plot(dates, execution_times, marker='o', color='#3498db')
+            self.time_series_ax.set_title('Test Execution Over Time', pad=20)
             self.time_series_ax.set_xlabel('Date')
             self.time_series_ax.set_ylabel('Execution Time (s)')
-            self.time_series_ax.grid(True)
-            self.time_series_fig.autofmt_xdate()
+            self.time_series_ax.grid(True, linestyle='--', alpha=0.6)
+            self.time_series_fig.tight_layout()
             self.time_series_canvas.draw()
             
-            # Failure Analysis
+            # Failure Analysis Chart
             self.failure_ax.clear()
             self.failure_ax.bar(dates, failure_counts, color='#e74c3c')
-            self.failure_ax.set_title('Failure Patterns Over Time')
+            self.failure_ax.set_title('Failure Patterns', pad=20)
             self.failure_ax.set_xlabel('Date')
             self.failure_ax.set_ylabel('Failure Count')
-            self.failure_ax.grid(True)
-            self.failure_fig.autofmt_xdate()
+            self.failure_ax.grid(True, linestyle='--', alpha=0.6)
+            self.failure_fig.tight_layout()
             self.failure_canvas.draw()
             
         except Exception as e:
             print(f"Error updating analytics: {e}")
-
-    def show_main_content(self):
-        """Show the main content area"""
-        self.content_scroll.show()
-        self.stacked_widget.hide()
-
-    def show_page(self, page):
-        """Show a specific page from the stacked widget"""
-        self.content_scroll.hide()
-        self.stacked_widget.show()
-        self.stacked_widget.setCurrentWidget(page)
-        
-        # Refresh data when switching to these pages
-        if page == self.dashboard_page:
-            self.dashboard_loader.load_data()
-        elif page == self.analytics_page:
-            self.update_analytics()
 
     def toggle_select_all_tests(self, state):
         check_state = Qt.CheckState.Checked if state else Qt.CheckState.Unchecked
