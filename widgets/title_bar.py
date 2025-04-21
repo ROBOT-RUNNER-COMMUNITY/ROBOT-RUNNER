@@ -1,88 +1,77 @@
-from PyQt6.QtWidgets import QHBoxLayout, QFrame, QLabel, QPushButton
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QFont
 
-class TitleBar(QHBoxLayout):
+class TitleBar(QWidget):
     def __init__(self, title, parent_window=None):
-        super().__init__()
+        super().__init__(parent_window)
         self.parent_window = parent_window
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setSpacing(0)
-        
-        # Title bar widget
-        self.titleBarWidget = QFrame()
-        self.titleBarWidget.setObjectName("titleBar")
-        self.titleBarLayout = QHBoxLayout(self.titleBarWidget)
-        self.titleBarLayout.setContentsMargins(5, 0, 5, 0)
-        self.titleBarLayout.setSpacing(5)
-        
-        # Title label
-        self.titleLabel = QLabel(title)
-        self.titleLabel.setStyleSheet("""
-            font-weight: bold;
-            padding-left: 5px;
-            color: white;
-        """)
-        self.titleBarLayout.addWidget(self.titleLabel)
-        
-        # Spacer
-        self.titleBarLayout.addStretch()
-        
-        # Window control buttons
-        self.minimizeButton = QPushButton("_")
-        self.maximizeButton = QPushButton("🗖")  # Maximize symbol
-        self.closeButton = QPushButton("X")
-        
-        # Configure buttons
-        for btn in [self.minimizeButton, self.maximizeButton, self.closeButton]:
-            btn.setFixedSize(30, 30)
-            btn.setStyleSheet("""
-                QPushButton {
-                    border: none;
-                    background: transparent;
-                    color: white;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: rgba(255, 255, 255, 0.1);
-                }
-                QPushButton#closeButton:hover {
-                    background-color: #e81123;
-                }
-            """)
-        
-        # Connect buttons if parent window exists
-        if parent_window:
-            self.minimizeButton.clicked.connect(parent_window.showMinimized)
-            self.closeButton.clicked.connect(parent_window.close)
-            self.maximizeButton.clicked.connect(self.toggle_maximize_restore)
-            
-            # Initial button state
+        self.setFixedHeight(40)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(10, 0, 10, 0)
+        layout.setSpacing(5)
+
+        self.title = QLabel(title)
+        self.title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.title)
+
+        layout.addStretch()
+
+        # Buttons
+        self.minimize_button = QPushButton("_")
+        self.maximize_button = QPushButton("🗖")
+        self.close_button = QPushButton("X")
+
+        # Button font and size
+        button_font = QFont()
+        button_font.setPointSize(14)
+        for btn in [self.minimize_button, self.maximize_button, self.close_button]:
+            btn.setFont(button_font)
+            btn.setFixedSize(QSize(32, 32))  # Slightly larger buttons
+            layout.addWidget(btn)
+
+        # Connect signals
+        if self.parent_window:
+            self.minimize_button.clicked.connect(parent_window.showMinimized)
+            self.close_button.clicked.connect(parent_window.close)
+            self.maximize_button.clicked.connect(self.toggle_maximize_restore)
             self.update_maximize_button()
-            
-            # Connect to window state changes
-            parent_window.windowStateChanged.connect(self.update_maximize_button)
-        
-        # Add buttons to layout (standard order)
-        self.titleBarLayout.addWidget(self.minimizeButton)
-        self.titleBarLayout.addWidget(self.maximizeButton)
-        self.titleBarLayout.addWidget(self.closeButton)
-        
-        self.addWidget(self.titleBarWidget)
-    
+            self.parent_window.windowStateChanged.connect(self.update_maximize_button)
+
+        self.setLayout(layout)
+        self.setStyleSheet("""
+            QWidget {
+                background: #34495e;
+                border-bottom: 1px solid #2c3e50;
+            }
+            QLabel {
+                color: white;
+                font-weight: bold;
+            }
+            QPushButton {
+                border: none;
+                background: transparent;
+                color: white;
+            }
+            QPushButton:hover {
+                background: #2c3e50;
+                border-radius: 3px;
+            }
+        """)
+
     def toggle_maximize_restore(self):
-        """Toggle between maximized and normal window state"""
         if self.parent_window:
             if self.parent_window.isMaximized():
                 self.parent_window.showNormal()
             else:
                 self.parent_window.showMaximized()
-            # Force immediate update
             self.update_maximize_button()
-    
+
     def update_maximize_button(self):
-        """Update maximize button appearance based on window state"""
         if self.parent_window:
             if self.parent_window.isMaximized():
-                self.maximizeButton.setText("🗗")  # Restore symbol
+                self.maximize_button.setText("🗗")  # Restore
             else:
-                self.maximizeButton.setText("🗖")  # Maximize symbol
+                self.maximize_button.setText("🗖")  # Maximize
