@@ -2,3 +2,4 @@ PyQt6
 robotframework
 robotframework-pabot
 pytest
+PyQt6-Charts
