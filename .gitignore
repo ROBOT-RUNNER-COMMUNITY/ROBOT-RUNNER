@@ -32,3 +32,7 @@ dist
 *.tar.lz
 *.tar.lzop
 *.tar.lz4
+
+# ignore all test files
+ui/analytics/__pycache__
+ui/dashboard/__pycache__
