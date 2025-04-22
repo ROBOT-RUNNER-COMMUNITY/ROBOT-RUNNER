@@ -1,5 +1,5 @@
-PyQt6==6.6.0
-PyQt6-Charts==6.6.0
+PyQt6 
+PyQt6-Charts
 PyQt6-Qt6==6.6.0
 PyQt6-sip==13.6.0
 robotframework==6.1.1
@@ -7,3 +7,10 @@ robotframework-pabot==2.16.0
 numpy==1.26.0
 pandas==2.1.1
 matplotlib==3.8.0
+openpyxl
+wheel
+setuptools
+robotframework-seleniumlibrary==6.0.0
+robotframework-selenium2library==3.0.0
+robotframework-requests==0.9.0
+pyinstaller
