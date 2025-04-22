@@ -1,3 +1,4 @@
+# ui/main_window.py
 import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -16,7 +17,7 @@ matplotlib.use('Qt5Agg')
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QListWidget, QListWidgetItem, QFrame, QCheckBox, QSpinBox,
-    QScrollArea, QStackedWidget, QSizePolicy, QApplication
+    QScrollArea, QStackedWidget, QSizePolicy, QApplication, QMessageBox
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QColor, QPainter, QFont
@@ -101,18 +102,8 @@ class RobotTestRunner(QWidget):
         self._init_help_page()
         self._connect_signals()
         
-        # Add update timer
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.check_for_updates)
-        self.update_timer.start(5000)  # Check every 5 seconds
-
         apply_styles(self)
         self.show_main_content()
-
-    def check_for_updates(self):
-        """Check for new test results and update UI if found"""
-        if hasattr(self, 'dashboard_loader'):
-            self.dashboard_loader.load_data()
 
     def _init_components(self):
         """Initialize test selection components"""
@@ -205,24 +196,37 @@ class RobotTestRunner(QWidget):
 
     def run_tests_with_update(self):
         """Run tests and then update dashboard"""
-        run_tests(self)
-        if hasattr(self, 'dashboard_loader'):
-            QTimer.singleShot(1000, lambda: self.dashboard_loader.load_data(force=True))
+        try:
+            # Clear old results first
+            clear_results_directory(self)
+            # Run new tests
+            run_tests(self)
+            # Only refresh if we're on dashboard or analytics page
+            if not self.content_scroll.isVisible():
+                QTimer.singleShot(2000, self.force_refresh_current_page)
+        except Exception as e:
+            QMessageBox.warning(self, "Test Execution Error", f"Failed to run tests: {str(e)}")
+
+    def force_refresh_current_page(self):
+        """Force refresh of the current page"""
+        current_widget = self.stacked_widget.currentWidget()
+        if current_widget == self.dashboard_page:
+            self.dashboard_loader.load_data(force=True)
+        elif current_widget == self.analytics_page:
+            self.dashboard_loader.load_data(force=True)
 
     def clear_results_with_update(self):
         """Clear results and update dashboard"""
         clear_results_directory(self)
-        if hasattr(self, 'dashboard_loader'):
-            QTimer.singleShot(1000, lambda: self.dashboard_loader.load_data(force=True))
-
+        # Only refresh if we're on dashboard or analytics page
+        if not self.content_scroll.isVisible():
+            self.force_refresh_current_page()
+        
     def _init_dashboard_page(self):
         """Initialize the dashboard page"""
         self.dashboard_loader = DashboardDataLoader()
         self.dashboard_page = DashboardWidget()
         self.dashboard_controller = DashboardController(self.dashboard_page, self.dashboard_loader)
-        
-        # Load initial data
-        QTimer.singleShot(100, lambda: self.dashboard_loader.load_data(force=True))
         self.stacked_widget.addWidget(self.dashboard_page)
 
     def _init_analytics_page(self):
@@ -260,14 +264,12 @@ class RobotTestRunner(QWidget):
         self.sidebar.helpClicked.connect(lambda: self.show_page(self.help_page))
 
     def show_dashboard(self):
-        """Show dashboard and refresh data"""
+        """Show dashboard"""
         self.show_page(self.dashboard_page)
-        self.dashboard_loader.load_data(force=True)
 
     def show_analytics(self):
-        """Show analytics and refresh data"""
+        """Show analytics"""
         self.show_page(self.analytics_page)
-        self.dashboard_loader.load_data(force=True)
 
     def show_main_content(self):
         """Show the main test selection content"""
@@ -296,4 +298,4 @@ class RobotTestRunner(QWidget):
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()
+            event.accept()  

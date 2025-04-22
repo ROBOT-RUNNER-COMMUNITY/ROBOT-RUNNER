@@ -1,5 +1,5 @@
+# ui/analytics/analytics_controller.py
 from PyQt6.QtCore import QObject
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 import numpy as np
@@ -13,32 +13,25 @@ class AnalyticsController(QObject):
         
     def _connect_signals(self):
         self.widget.refresh_button.clicked.connect(lambda: self.data_loader.load_data(force=True))
-        self.data_loader.data_loaded.connect(self._handle_data_loaded)
+        self.data_loader.data_loaded.connect(self.update_analytics)
         
-    def _handle_data_loaded(self, data):
-        """Handle loaded data and update UI"""
+    def update_analytics(self, data):
         try:
-            if not data or not isinstance(data, dict):
-                print("Invalid or empty data received in analytics")
+            if not data or not isinstance(data, dict) or not data.get('recent_test_runs'):
                 self._show_empty_state()
                 return
                 
-            print(f"Analytics data received: {data.keys()}")  # Debug
-            
             self._update_time_series(data)
             self._update_failure_analysis(data)
             
         except Exception as e:
-            print(f"Analytics update error: {e}")
+            print(f"Error updating analytics: {e}")
             self._show_empty_state()
 
     def _update_time_series(self, data):
-        """Update the time series chart"""
         self.widget.time_series_ax.clear()
         
-        recent_runs = data.get('recent_runs', [])
-        print(f"Updating time series - Runs: {len(recent_runs)}")  # Debug
-        
+        recent_runs = data.get('recent_test_runs', [])
         if not recent_runs:
             self._show_empty_chart(self.widget.time_series_ax, "No test runs available")
             self.widget.time_series_canvas.draw()
@@ -55,7 +48,7 @@ class AnalyticsController(QObject):
             date_stats[date]['count'] += 1
         
         dates = sorted(date_stats.keys())
-        if len(dates) < 2:
+        if len(dates) < 1:
             self._show_empty_chart(self.widget.time_series_ax, "Not enough data points")
             self.widget.time_series_canvas.draw()
             return
@@ -66,52 +59,36 @@ class AnalyticsController(QObject):
         counts = [date_stats[d]['count'] for d in dates]
         failure_rates = [f/c if c > 0 else 0 for f, c in zip(failures, counts)]
         
-        # Convert dates to matplotlib format
-        mpl_dates = mdates.date2num(dates)
-        
         # Plot execution time
-        self.widget.time_series_ax.plot_date(
-            mpl_dates, times, 
-            '-o', color='#3498db', 
-            label='Total Execution Time (s)'
-        )
-        self.widget.time_series_ax.set_ylabel('Execution Time (s)', color='#3498db')
+        self.widget.time_series_ax.plot(dates, times, '-o', color='#3498db', label='Execution Time (s)')
+        self.widget.time_series_ax.set_ylabel('Time (s)', color='#3498db')
         self.widget.time_series_ax.tick_params(axis='y', labelcolor='#3498db')
         
-        # Plot failure rate on secondary axis
+        # Plot failure rate
         ax2 = self.widget.time_series_ax.twinx()
-        ax2.plot_date(
-            mpl_dates, failure_rates,
-            '-s', color='#e74c3c',
-            label='Failure Rate'
-        )
-        ax2.set_ylabel('Failure Rate', color='#e74c3c')
-        ax2.tick_params(axis='y', labelcolor='#e74c3c')
-        ax2.set_ylim(0, 1)  # Rate between 0-1
+        ax2.plot(dates, failure_rates, 'r--', label='Failure Rate')
+        ax2.set_ylabel('Failure Rate', color='red')
+        ax2.tick_params(axis='y', labelcolor='red')
+        ax2.set_ylim(0, 1)
         
         # Formatting
-        self.widget.time_series_ax.xaxis.set_major_formatter(
-            mdates.DateFormatter('%Y-%m-%d')
-        )
-        self.widget.time_series_ax.xaxis.set_major_locator(
-            mdates.DayLocator()
-        )
-        self.widget.time_series_fig.autofmt_xdate()
-        
-        self.widget.time_series_ax.set_title('Test Execution Trends')
+        self.widget.time_series_ax.set_title('Test Execution Trends', pad=10)
         self.widget.time_series_ax.grid(True, linestyle='--', alpha=0.6)
         self.widget.time_series_ax.legend(loc='upper left')
         ax2.legend(loc='upper right')
         
+        # Format x-axis dates
+        self.widget.time_series_ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        self.widget.time_series_ax.xaxis.set_major_locator(mdates.DayLocator())
+        self.widget.time_series_fig.autofmt_xdate()
+        
+        self.widget.time_series_fig.tight_layout()
         self.widget.time_series_canvas.draw()
 
     def _update_failure_analysis(self, data):
-        """Update the failure analysis chart"""
         self.widget.failure_ax.clear()
         
         test_details = data.get('test_details', [])
-        print(f"Updating failure analysis - Tests: {len(test_details)}")  # Debug
-        
         if not test_details:
             self._show_empty_chart(self.widget.failure_ax, "No test details available")
             self.widget.failure_canvas.draw()
@@ -121,7 +98,7 @@ class AnalyticsController(QObject):
         failure_counts = {}
         for test in test_details:
             if test.get('status') == 'FAIL':
-                test_name = f"{test.get('suite', '?')}.{test.get('test', '?')}"
+                test_name = test.get('name', 'Unknown')
                 failure_counts[test_name] = failure_counts.get(test_name, 0) + 1
         
         if not failure_counts:
@@ -131,37 +108,36 @@ class AnalyticsController(QObject):
             
         # Get top 10 failing tests
         sorted_failures = sorted(failure_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        test_names = [x[0][:30] + '...' if len(x[0]) > 30 else x[0] for x in sorted_failures]
+        test_names = [x[0] for x in sorted_failures]
         fail_counts = [x[1] for x in sorted_failures]
         
         # Create horizontal bar chart
         y_pos = range(len(test_names))
-        self.widget.failure_ax.barh(
-            y_pos, fail_counts,
-            color='#e74c3c'
-        )
+        bars = self.widget.failure_ax.barh(y_pos, fail_counts, color='#e74c3c')
+        
+        # Add value labels
+        for bar in bars:
+            width = bar.get_width()
+            self.widget.failure_ax.text(width + 0.1, bar.get_y() + bar.get_height()/2,
+                                      f'{width}', ha='left', va='center')
+        
+        # Formatting
         self.widget.failure_ax.set_yticks(y_pos)
         self.widget.failure_ax.set_yticklabels(test_names)
         self.widget.failure_ax.set_xlabel('Failure Count')
-        self.widget.failure_ax.set_title('Top Failing Tests')
+        self.widget.failure_ax.set_title('Top Failing Tests', pad=10)
         self.widget.failure_ax.grid(True, linestyle='--', alpha=0.6)
-        
+        self.widget.failure_fig.tight_layout()
         self.widget.failure_canvas.draw()
 
     def _show_empty_state(self):
-        """Show empty state for both charts"""
         self._show_empty_chart(self.widget.time_series_ax, "No data available")
         self._show_empty_chart(self.widget.failure_ax, "No data available")
         self.widget.time_series_canvas.draw()
         self.widget.failure_canvas.draw()
 
     def _show_empty_chart(self, ax, message):
-        """Display message on empty chart"""
         ax.clear()
-        ax.text(
-            0.5, 0.5, message,
-            ha='center', va='center',
-            transform=ax.transAxes
-        )
+        ax.text(0.5, 0.5, message, ha='center', va='center', transform=ax.transAxes)
         ax.set_title('')
         ax.grid(False)

@@ -1,8 +1,10 @@
-from PyQt6.QtCore import QObject, Qt
+# ui/dashboard/dashboard_controller.py
+from PyQt6.QtCore import QObject, Qt, QTimer
 from PyQt6.QtCharts import QChart, QPieSeries, QBarSet, QBarSeries, QBarCategoryAxis, QValueAxis
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QTableWidgetItem
 import numpy as np
+from datetime import datetime
 
 class DashboardController(QObject):
     def __init__(self, widget, data_loader):
@@ -10,158 +12,177 @@ class DashboardController(QObject):
         self.widget = widget
         self.data_loader = data_loader
         self._connect_signals()
+        self._init_charts()  # Initialize charts once
+        self._show_empty_state()
         
     def _connect_signals(self):
-        self.widget.refresh_button.clicked.connect(lambda: self.data_loader.load_data(force=True))
+        self.widget.refresh_button.clicked.connect(self._refresh_data)
         self.data_loader.data_loaded.connect(self.update_dashboard)
         
+    def _init_charts(self):
+        """Initialize chart objects once for better performance"""
+        # Pie Chart
+        self.pie_chart = QChart()
+        self.pie_chart.setTitle("Test Results Distribution")
+        self.pie_chart.legend().setVisible(True)
+        self.pie_chart.legend().setAlignment(Qt.AlignmentFlag.AlignBottom)
+        self.widget.pie_chart_view.setChart(self.pie_chart)
+        
+        # Bar Chart
+        self.bar_chart = QChart()
+        self.bar_chart.setTitle("Recent Execution Times")
+        self.bar_series = QBarSeries()
+        self.bar_chart.addSeries(self.bar_series)
+        
+        # Configure axes
+        self.bar_axis_x = QBarCategoryAxis()
+        self.bar_chart.addAxis(self.bar_axis_x, Qt.AlignmentFlag.AlignBottom)
+        
+        self.bar_axis_y = QValueAxis()
+        self.bar_axis_y.setMin(0)
+        self.bar_chart.addAxis(self.bar_axis_y, Qt.AlignmentFlag.AlignLeft)
+        
+        self.widget.bar_chart_view.setChart(self.bar_chart)
+
+    def _refresh_data(self):
+        """Trigger data refresh with loading indicator"""
+        self.widget.refresh_button.setEnabled(False)
+        self.widget.refresh_button.setText("Loading...")
+        QTimer.singleShot(100, lambda: self.data_loader.load_data(force=True))
+
     def update_dashboard(self, data):
         try:
-            if not data:
-                print("Empty data received")
+            if not data or not isinstance(data, dict):
                 self._show_empty_state()
                 return
-                
-            # Debug output
-            print("\n=== Dashboard Update ===")
-            print(f"Total Tests: {data.get('total_tests', 0)}")
-            print(f"Passed: {data.get('passed', 0)}")
-            print(f"Failed: {data.get('failed', 0)}")
-            print(f"Recent Test Runs: {len(data.get('recent_test_runs', []))}")
-            
-            # Update stats cards
-            total = data.get('total_tests', 0)
-            passed = data.get('passed', 0)
-            failed = data.get('failed', 0)
-            exec_times = data.get('execution_times', [])
-            
-            # Get references to the card widgets
-            total_label = self.widget.total_tests_card.layout().itemAt(1).widget()
-            passed_label = self.widget.passed_tests_card.layout().itemAt(1).widget()
-            failed_label = self.widget.failed_tests_card.layout().itemAt(1).widget()
-            avg_label = self.widget.avg_time_card.layout().itemAt(1).widget()
-            
-            # Update card values
-            total_label.setText(str(total))
-            passed_label.setText(str(passed))
-            failed_label.setText(str(failed))
-            
-            avg_time = np.mean(exec_times) if exec_times else 0
-            avg_label.setText(f"{avg_time:.2f}s")
-            
-            # Update pie chart
-            if total > 0:
-                pie_series = QPieSeries()
-                if passed > 0:
-                    passed_slice = pie_series.append(f"Passed ({passed})", passed)
-                    passed_slice.setColor(QColor("#2ecc71"))
-                    passed_slice.setLabelVisible(True)
-                if failed > 0:
-                    failed_slice = pie_series.append(f"Failed ({failed})", failed)
-                    failed_slice.setColor(QColor("#e74c3c"))
-                    failed_slice.setLabelVisible(True)
-                
-                chart = QChart()
-                chart.addSeries(pie_series)
-                chart.setTitle("Test Results Distribution")
-                chart.legend().setVisible(True)
-                chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-                self.widget.pie_chart_view.setChart(chart)
-            else:
-                self._show_empty_chart(self.widget.pie_chart_view, "No test results")
-            
-            # Update bar chart with recent test executions
-            recent_tests = data.get('recent_test_runs', [])
-            if recent_tests:
-                bar_set = QBarSet("Execution Time (s)")
-                categories = []
-                
-                # Show last 5 test executions
-                for test in recent_tests[:5]:
-                    bar_set.append(test['duration'])
-                    categories.append(f"{test['name'][:15]}...\n{test['timestamp'].strftime('%m-%d %H:%M')}")
-                
-                bar_series = QBarSeries()
-                bar_series.append(bar_set)
-                
-                chart = QChart()
-                chart.addSeries(bar_series)
-                chart.setTitle("Recent Test Execution Times")
-                chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-                
-                axis_x = QBarCategoryAxis()
-                axis_x.append(categories)
-                chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
-                bar_series.attachAxis(axis_x)
-                
-                axis_y = QValueAxis()
-                chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
-                bar_series.attachAxis(axis_y)
-                
-                self.widget.bar_chart_view.setChart(chart)
-            else:
-                self._show_empty_chart(self.widget.bar_chart_view, "No recent test runs")
-            
-            # Update recent test runs table
-            self._update_recent_tests_table(recent_tests)
+
+            # Process data in background
+            QTimer.singleShot(0, lambda: self._update_ui(data))
             
         except Exception as e:
-            print(f"Error updating dashboard: {e}")
+            print(f"Dashboard update error: {e}")
             self._show_empty_state()
+        finally:
+            self.widget.refresh_button.setEnabled(True)
+            self.widget.refresh_button.setText("↻ Refresh Dashboard")
 
-    def _update_recent_tests_table(self, tests):
-        """Update table with individual test runs"""
+    def _update_ui(self, data):
+        """Update UI elements with new data"""
+        # Update stats cards
+        total = data.get('total_tests', 0)
+        passed = data.get('passed', 0)
+        failed = data.get('failed', 0)
+        recent_runs = data.get('recent_test_runs', [])
+        
+        self.widget.total_tests_card.layout().itemAt(1).widget().setText(str(total))
+        self.widget.passed_tests_card.layout().itemAt(1).widget().setText(str(passed))
+        self.widget.failed_tests_card.layout().itemAt(1).widget().setText(str(failed))
+        
+        # Calculate average time
+        exec_times = data.get('execution_times', [])
+        avg_time = np.mean(exec_times) if exec_times else 0
+        self.widget.avg_time_card.layout().itemAt(1).widget().setText(f"{avg_time:.2f}s")
+        
+        # Update pie chart
+        self._update_pie_chart(passed, failed)
+        
+        # Update bar chart
+        self._update_bar_chart(recent_runs)
+        
+        # Update table
+        self._update_recent_runs_table(recent_runs)
+
+    def _update_pie_chart(self, passed, failed):
+        """Optimized pie chart update"""
+        self.pie_chart.removeAllSeries()
+        
+        if passed > 0 or failed > 0:
+            pie_series = QPieSeries()
+            pie_series.append("Passed", passed)
+            pie_series.append("Failed", failed)
+            
+            slices = pie_series.slices()
+            if len(slices) > 0:
+                slices[0].setColor(QColor("#2ecc71"))
+                slices[0].setLabelVisible(True)
+            if len(slices) > 1:
+                slices[1].setColor(QColor("#e74c3c"))
+                slices[1].setLabelVisible(True)
+            
+            self.pie_chart.addSeries(pie_series)
+
+    def _update_bar_chart(self, recent_runs):
+        """Optimized bar chart update"""
+        self.bar_series.clear()
+        self.bar_axis_x.clear()
+        
+        if recent_runs:
+            bar_set = QBarSet("Execution Time (s)")
+            categories = []
+            
+            # Get last 5 unique runs by timestamp
+            unique_runs = {}
+            for run in sorted(recent_runs, key=lambda x: x['timestamp'], reverse=True):
+                if run['name'] not in unique_runs:
+                    unique_runs[run['name']] = run
+                    if len(unique_runs) >= 5:
+                        break
+            
+            for run in unique_runs.values():
+                bar_set.append(run['duration'])
+                short_name = run['name'][:15] + ("..." if len(run['name']) > 15 else "")
+                categories.append(short_name)
+            
+            self.bar_series.append(bar_set)
+            self.bar_axis_x.append(categories)
+            
+            # Auto-scale y-axis
+            max_duration = max(run['duration'] for run in unique_runs.values())
+            self.bar_axis_y.setMax(max(1, max_duration * 1.2))  # Ensure min range of 1
+
+    def _update_recent_runs_table(self, runs):
+        """Optimized table update"""
         self.widget.recent_runs_table.setRowCount(0)
         
-        if not tests:
+        if not runs:
             return
             
-        # Show last 5 test executions
-        for test in tests[:5]:
-            row = self.widget.recent_runs_table.rowCount()
-            self.widget.recent_runs_table.insertRow(row)
-            
+        # Get last 10 unique runs
+        unique_runs = {}
+        for run in sorted(runs, key=lambda x: x['timestamp'], reverse=True):
+            if run['name'] not in unique_runs:
+                unique_runs[run['name']] = run
+                if len(unique_runs) >= 10:
+                    break
+        
+        self.widget.recent_runs_table.setRowCount(len(unique_runs))
+        for row, run in enumerate(unique_runs.values()):
             # Test Name
-            name_item = QTableWidgetItem(test['name'])
+            name_item = QTableWidgetItem(run['name'])
             self.widget.recent_runs_table.setItem(row, 0, name_item)
             
             # Timestamp
-            time_item = QTableWidgetItem(test['timestamp'].strftime("%Y-%m-%d %H:%M:%S"))
+            time_item = QTableWidgetItem(run['timestamp'].strftime("%Y-%m-%d %H:%M:%S"))
             self.widget.recent_runs_table.setItem(row, 1, time_item)
             
-            # Status with color coding
-            status_item = QTableWidgetItem(test['status'])
-            status_item.setBackground(
-                QColor("#2ecc71") if test['status'] == 'PASS' else QColor("#e74c3c")
-            )
+            # Status
+            status_item = QTableWidgetItem(run['status'])
+            status_item.setBackground(QColor("#2ecc71" if run['status'] == 'PASS' else "#e74c3c"))
             self.widget.recent_runs_table.setItem(row, 2, status_item)
             
             # Duration
-            duration_item = QTableWidgetItem(f"{test['duration']:.2f}s")
+            duration_item = QTableWidgetItem(f"{run['duration']:.2f}s")
+            duration_item.setTextAlignment(Qt.AlignmentFlag.AlignRight)
             self.widget.recent_runs_table.setItem(row, 3, duration_item)
 
     def _show_empty_state(self):
-        """Reset dashboard to empty state"""
-        # Update stats cards
-        total_label = self.widget.total_tests_card.layout().itemAt(1).widget()
-        passed_label = self.widget.passed_tests_card.layout().itemAt(1).widget()
-        failed_label = self.widget.failed_tests_card.layout().itemAt(1).widget()
-        avg_label = self.widget.avg_time_card.layout().itemAt(1).widget()
+        """Reset to empty state"""
+        self.widget.total_tests_card.layout().itemAt(1).widget().setText("0")
+        self.widget.passed_tests_card.layout().itemAt(1).widget().setText("0")
+        self.widget.failed_tests_card.layout().itemAt(1).widget().setText("0")
+        self.widget.avg_time_card.layout().itemAt(1).widget().setText("0s")
         
-        total_label.setText("0")
-        passed_label.setText("0")
-        failed_label.setText("0")
-        avg_label.setText("0s")
-        
-        # Clear charts
-        self._show_empty_chart(self.widget.pie_chart_view, "No test data")
-        self._show_empty_chart(self.widget.bar_chart_view, "No recent runs")
-        
-        # Clear table
+        self.pie_chart.removeAllSeries()
+        self.bar_series.clear()
+        self.bar_axis_x.clear()
         self.widget.recent_runs_table.setRowCount(0)
-
-    def _show_empty_chart(self, view, message):
-        """Display empty chart with message"""
-        chart = QChart()
-        chart.setTitle(message)
-        view.setChart(chart)

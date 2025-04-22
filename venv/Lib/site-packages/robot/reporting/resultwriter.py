@@ -54,7 +54,7 @@ class ResultWriter:
         settings = settings or RebotSettings(options)
         results = Results(settings, *self._sources)
         if settings.output:
-            self._write_output(results.result, settings.output)
+            self._write_output(results.result, settings.output, settings.legacy_output)
         if settings.xunit:
             self._write_xunit(results.result, settings.xunit)
         if settings.log:
@@ -67,8 +67,8 @@ class ResultWriter:
                                settings.report_config)
         return results.return_code
 
-    def _write_output(self, result, path):
-        self._write('Output', result.save, path)
+    def _write_output(self, result, path, legacy_output=False):
+        self._write('Output', result.save, path, legacy_output)
 
     def _write_xunit(self, result, path):
         self._write('XUnit', XUnitWriter(result).write, path)
@@ -85,7 +85,7 @@ class ResultWriter:
         except DataError as err:
             LOGGER.error(err.message)
         else:
-            LOGGER.output_file(name, path)
+            LOGGER.result_file(name, path)
 
 
 class Results:
@@ -115,10 +115,11 @@ class Results:
                                            *self._sources)
             if self._settings.rpa is None:
                 self._settings.rpa = self._result.rpa
-            modifier = ModelModifier(self._settings.pre_rebot_modifiers,
-                                     self._settings.process_empty_suite,
-                                     LOGGER)
-            self._result.suite.visit(modifier)
+            if self._settings.pre_rebot_modifiers:
+                modifier = ModelModifier(self._settings.pre_rebot_modifiers,
+                                        self._settings.process_empty_suite,
+                                        LOGGER)
+                self._result.suite.visit(modifier)
             self._result.configure(self._settings.status_rc,
                                    self._settings.suite_config,
                                    self._settings.statistics_config)

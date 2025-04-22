@@ -13,59 +13,62 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from typing import TYPE_CHECKING
+
 from robot.errors import DataError
+
+if TYPE_CHECKING:
+    from .argumentspec import ArgumentSpec
 
 
 class ArgumentMapper:
 
-    def __init__(self, argspec):
-        """:type argspec: :py:class:`robot.running.arguments.ArgumentSpec`"""
-        self._argspec = argspec
+    def __init__(self, arg_spec: 'ArgumentSpec'):
+        self.arg_spec = arg_spec
 
     def map(self, positional, named, replace_defaults=True):
-        template = KeywordCallTemplate(self._argspec)
+        template = KeywordCallTemplate(self.arg_spec)
         template.fill_positional(positional)
         template.fill_named(named)
         if replace_defaults:
             template.replace_defaults()
-        return template.args, template.kwargs
+        return template.positional, template.named
 
 
 class KeywordCallTemplate:
 
-    def __init__(self, argspec):
-        """:type argspec: :py:class:`robot.running.arguments.ArgumentSpec`"""
-        self._argspec = argspec
-        self.args = [None if arg not in argspec.defaults
-                     else DefaultValue(argspec.defaults[arg])
-                     for arg in argspec.positional]
-        self.kwargs = []
+    def __init__(self, spec: 'ArgumentSpec'):
+        self.spec = spec
+        self.positional = [DefaultValue(spec.defaults[arg])
+                           if arg in spec.defaults else None
+                           for arg in spec.positional]
+        self.named = []
 
     def fill_positional(self, positional):
-        self.args[:len(positional)] = positional
+        self.positional[:len(positional)] = positional
 
     def fill_named(self, named):
-        spec = self._argspec
+        spec = self.spec
         for name, value in named:
             if name in spec.positional_or_named:
                 index = spec.positional_or_named.index(name)
-                self.args[index] = value
+                self.positional[index] = value
             elif spec.var_named or name in spec.named_only:
-                self.kwargs.append((name, value))
+                self.named.append((name, value))
             else:
-                raise DataError("Non-existing named argument '%s'." % name)
+                raise DataError(f"Non-existing named argument '{name}'.")
         named_names = {name for name, _ in named}
         for name in spec.named_only:
             if name not in named_names:
                 value = DefaultValue(spec.defaults[name])
-                self.kwargs.append((name, value))
+                self.named.append((name, value))
 
     def replace_defaults(self):
         is_default = lambda arg: isinstance(arg, DefaultValue)
-        while self.args and is_default(self.args[-1]):
-            self.args.pop()
-        self.args = [a if not is_default(a) else a.value for a in self.args]
-        self.kwargs = [(n, v) for n, v in self.kwargs if not is_default(v)]
+        while self.positional and is_default(self.positional[-1]):
+            self.positional.pop()
+        self.positional = [a if not is_default(a) else a.value for a in self.positional]
+        self.named = [(n, v) for n, v in self.named if not is_default(v)]
 
 
 class DefaultValue:
@@ -77,5 +80,4 @@ class DefaultValue:
         try:
             return variables.replace_scalar(self.value)
         except DataError as err:
-            raise DataError('Resolving argument default values failed: %s'
-                            % err.message)
+            raise DataError(f'Resolving argument default values failed: {err}')
