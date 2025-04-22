@@ -1,18 +1,19 @@
 import os
 import subprocess
+import time
 from openpyxl import Workbook
 from robot.api import ExecutionResult
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import QtCore
 from PyQt6.QtGui import QMovie, QPixmap
-from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtWidgets import QListWidgetItem, QMessageBox
 from utils.resource_utils import resource_path
-from utils.display_utils import show_cross  # Now importing from display_utils
+from utils.display_utils import show_cross
 from openpyxl.chart import BarChart, Reference
 import traceback
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
- 
+
 def load_tests(window):
     window.testList.clear()
     window.loadingLabel.show()
@@ -22,14 +23,14 @@ def load_tests(window):
     window.loadingLabel.setMovie(window.loading_movie)
     window.loading_movie.start()
     QTimer.singleShot(1500, lambda: populate_tests(window))
- 
+
 def populate_tests(window):
     window.loading_movie.stop()
     window.loadingLabel.clear()
- 
+
     if window.test_directory:
         test_files = [file for file in os.listdir(window.test_directory) if file.endswith(".robot")]
- 
+
         if not test_files:
             show_cross(window)
             window.label.setStyleSheet("color: #ad402a")
@@ -38,64 +39,93 @@ def populate_tests(window):
                 item = QListWidgetItem(file)
                 item.setCheckState(Qt.CheckState.Unchecked)
                 window.testList.addItem(item)
- 
+
             window.label.setStyleSheet("color: green")
             check_icon_path = resource_path("images/check.png")
             check_pixmap = QPixmap(check_icon_path).scaled(27, 27, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
             window.loadingLabel.setPixmap(check_pixmap)
             window.loadingLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
- 
+
 def run_tests(window):
-    if not window.test_directory:
-        window.resultLabel.setStyleSheet("color: none")
-        window.resultLabel.setText("Veuillez sélectionner un dossier.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
-        return
-       
-    if not window.output_directory:
-        window.resultLabel.setStyleSheet("color: none")
-        window.resultLabel.setText("Veuillez sélectionner un emplacement pour les résultats.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
-        return
-       
-    selected_tests = [os.path.join(window.test_directory, window.testList.item(i).text())
-                        for i in range(window.testList.count())
-                        if window.testList.item(i).checkState() == Qt.CheckState.Checked]
-       
-    if not selected_tests:
-        window.resultLabel.setStyleSheet("color: none")
-        window.resultLabel.setText("Veuillez sélectionner au moins un test.")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
-        return
-       
-    num_processes = window.processInput.text()
-    repport_title = "AUTOS TESTS - REPORT"
-    log_title = "AUTOS TESTS - LOG"
- 
-    if num_processes == 1:
-        command = ["robot", "-d", window.output_directory] + selected_tests            
+    try:
+        if not window.test_directory:
+            window.resultLabel.setStyleSheet("color: none")
+            window.resultLabel.setText("Veuillez sélectionner un dossier.")
+            window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+            return False
+        
+        if not window.output_directory:
+            window.resultLabel.setStyleSheet("color: none")
+            window.resultLabel.setText("Veuillez sélectionner un emplacement pour les résultats.")
+            window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+            return False
+        
+        selected_tests = [os.path.join(window.test_directory, window.testList.item(i).text())
+                         for i in range(window.testList.count())
+                         if window.testList.item(i).checkState() == Qt.CheckState.Checked]
+        
+        if not selected_tests:
+            window.resultLabel.setStyleSheet("color: none")
+            window.resultLabel.setText("Veuillez sélectionner au moins un test.")
+            window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+            return False
+        
+        num_processes = window.processInput.text()
+        repport_title = "AUTOS TESTS - REPORT"
+        log_title = "AUTOS TESTS - LOG"
+
+        # Ensure output directory exists
+        os.makedirs(window.output_directory, exist_ok=True)
+
+        if num_processes == "1":
+            command = ["robot", "-d", window.output_directory] + selected_tests
+        else:
+            command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, 
+                      "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests
+        
+        # Run tests
+        process = subprocess.Popen(command, cwd=window.test_directory)
+        process.wait()
+
+        # Wait for output.xml to be generated
         output_path = os.path.join(window.output_directory, "output.xml")
-    else :
-        command = ["pabot", "--processes", num_processes, "--outputdir", window.output_directory, "--reporttitle", repport_title, "--logtitle", log_title] + selected_tests
-    subprocess.run(command, cwd=window.test_directory, capture_output=True, text=True)
-       
-    output_path = os.path.join(window.output_directory, "output.xml")
-    result = ExecutionResult(output_path)
-         
-    if result.suite.statistics.failed >= 1:
-        window.resultLabel.setStyleSheet("color: none")
-        window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-        window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
-    else:
-        window.resultLabel.setStyleSheet("color: none")
-        window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
-        window.resultLabel.setStyleSheet("color: green; font: bold")        
- 
+        max_wait = 15  # seconds
+        wait_interval = 0.5  # seconds
+
+        for _ in range(int(max_wait / wait_interval)):
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                break
+            time.sleep(wait_interval)
+        else:
+            raise FileNotFoundError(f"output.xml not generated after {max_wait} seconds")
+
+        # Process results
+        result = ExecutionResult(output_path)
+        
+        if result.suite.statistics.failed >= 1:
+            window.resultLabel.setStyleSheet("color: none")
+            window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
+            window.resultLabel.setStyleSheet("color: #ad402a; font: bold")
+        else:
+            window.resultLabel.setStyleSheet("color: none")
+            window.resultLabel.setText(f"Total: {result.suite.statistics.total} | Passés: {result.suite.statistics.passed} | Échoués: {result.suite.statistics.failed}")
+            window.resultLabel.setStyleSheet("color: green; font: bold")
+        
+        return True
+
+    except Exception as e:
+        QMessageBox.critical(
+            window,
+            "Test Execution Error",
+            f"Failed to run tests: {str(e)}"
+        )
+        return False
+
 def open_report(window):
     report_path = os.path.join(window.output_directory, "report.html")
     if os.path.exists(report_path):
         os.system(f'start "" "{report_path}"')
- 
+
 def open_log(window):
     log_path = os.path.join(window.output_directory, "log.html")
     if os.path.exists(log_path):
