@@ -63,6 +63,9 @@ class Writer(ABC):
 class ModelWriter(Writer, ABC):
     handles_line = '<!-- JS MODEL -->'
 
+    def handles(self, line: str):
+        return line.strip().startswith(self.handles_line)
+
 
 class LineWriter(Writer):
 
@@ -113,4 +116,4 @@ class CssFileWriter(InliningWriter):
 
     def write(self, line: str):
         href, media = re.search('href="([^"]+)" media="([^"]+)"', line).groups()
-        self.inline_file(href, 'style', {'type': 'text/css', 'media': media})
+        self.inline_file(href, 'style', {'media': media})

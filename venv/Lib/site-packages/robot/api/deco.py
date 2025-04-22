@@ -13,10 +13,25 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import inspect
+from typing import Any, Callable, Literal, Sequence, TypeVar, Union, overload
+
+from .interfaces import TypeHints
 
 
-def not_keyword(func):
+# Current annotations report `attr-defined` errors. This can be solved once Python 3.10
+# becomes the minimum version (error-free conditional typing proved too complex).
+# See: https://discuss.python.org/t/questions-related-to-typing-overload-style/38130
+F = TypeVar('F', bound=Callable[..., Any])    # Any function.
+K = TypeVar('K', bound=Callable[..., Any])    # Keyword function.
+L = TypeVar('L', bound=type)                  # Library class.
+KeywordDecorator = Callable[[K], K]
+LibraryDecorator = Callable[[L], L]
+Scope = Literal['GLOBAL', 'SUITE', 'TEST', 'TASK']
+Converter = Union[Callable[[Any], Any], Callable[[Any, Any], Any]]
+DocFormat = Literal['ROBOT', 'HTML', 'TEXT', 'REST']
+
+
+def not_keyword(func: F) -> F:
     """Decorator to disable exposing functions or methods as keywords.
 
     Examples::
@@ -41,8 +56,22 @@ def not_keyword(func):
 not_keyword.robot_not_keyword = True
 
 
+@overload
+def keyword(func: K, /) -> K:
+    ...
+
+
+@overload
+def keyword(name: 'str | None' = None,
+            tags: Sequence[str] = (),
+            types: 'TypeHints | None' = ()) -> KeywordDecorator:
+    ...
+
+
 @not_keyword
-def keyword(name=None, tags=(), types=()):
+def keyword(name: 'K | str | None' = None,
+            tags: Sequence[str] = (),
+            types: 'TypeHints | None' = ()) -> 'K | KeywordDecorator':
     """Decorator to set custom name, tags and argument types to keywords.
 
     This decorator creates ``robot_name``, ``robot_tags`` and ``robot_types``
@@ -80,14 +109,14 @@ def keyword(name=None, tags=(), types=()):
         def types_as_list(length, case_insensitive):
             # ...
 
-        @keyword(types=None])
+        @keyword(types=None)
         def no_conversion(length, case_insensitive=False):
             # ...
     """
-    if inspect.isroutine(name):
+    if callable(name):
         return keyword()(name)
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         func.robot_name = name
         func.robot_tags = tags
         func.robot_types = types
@@ -96,15 +125,34 @@ def keyword(name=None, tags=(), types=()):
     return decorator
 
 
+@overload
+def library(cls: L, /) -> L:
+    ...
+
+
+@overload
+def library(scope: 'Scope | None' = None,
+            version: 'str | None' = None,
+            converters: 'dict[type, Converter] | None' = None,
+            doc_format: 'DocFormat | None' = None,
+            listener: 'Any | None' = None,
+            auto_keywords: bool = False) -> LibraryDecorator:
+    ...
+
+
 @not_keyword
-def library(scope=None, version=None, converters=None, doc_format=None, listener=None,
-            auto_keywords=False):
+def library(scope: 'L | Scope | None' = None,
+            version: 'str | None' = None,
+            converters: 'dict[type, Converter] | None' = None,
+            doc_format: 'DocFormat | None' = None,
+            listener: 'Any | None' = None,
+            auto_keywords: bool = False) -> 'L | LibraryDecorator':
     """Class decorator to control keyword discovery and other library settings.
 
-    By default disables automatic keyword detection by setting class attribute
-    ``ROBOT_AUTO_KEYWORDS = False`` to the decorated library. In that mode
-    only methods decorated explicitly with the :func:`keyword` decorator become
-    keywords. If that is not desired, automatic keyword discovery can be
+    Disables automatic keyword detection by setting class attribute
+    ``ROBOT_AUTO_KEYWORDS = False`` to the decorated library by default. In that
+    mode only methods decorated explicitly with the :func:`keyword` decorator
+    become keywords. If that is not desired, automatic keyword discovery can be
     enabled by using ``auto_keywords=True``.
 
     Arguments ``scope``, ``version``, ``converters``, ``doc_format`` and ``listener``
@@ -112,7 +160,7 @@ def library(scope=None, version=None, converters=None, doc_format=None, listener
     using class attributes ``ROBOT_LIBRARY_SCOPE``, ``ROBOT_LIBRARY_VERSION``,
     ``ROBOT_LIBRARY_CONVERTERS``, ``ROBOT_LIBRARY_DOC_FORMAT`` and
     ``ROBOT_LIBRARY_LISTENER``, respectively. These attributes are only set if
-    the related arguments are given and they override possible existing attributes
+    the related arguments are given, and they override possible existing attributes
     in the decorated class.
 
     Examples::
@@ -135,10 +183,10 @@ def library(scope=None, version=None, converters=None, doc_format=None, listener
     The ``@library`` decorator is new in Robot Framework 3.2.
     The ``converters`` argument is new in Robot Framework 5.0.
     """
-    if inspect.isclass(scope):
+    if isinstance(scope, type):
         return library()(scope)
 
-    def decorator(cls):
+    def decorator(cls: L) -> L:
         if scope is not None:
             cls.ROBOT_LIBRARY_SCOPE = scope
         if version is not None:

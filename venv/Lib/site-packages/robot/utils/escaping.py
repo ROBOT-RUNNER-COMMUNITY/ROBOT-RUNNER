@@ -15,15 +15,13 @@
 
 import re
 
-from .robottypes import is_string
-
 
 _CONTROL_WORDS = frozenset(('ELSE', 'ELSE IF', 'AND', 'WITH NAME', 'AS'))
 _SEQUENCES_TO_BE_ESCAPED = ('\\', '${', '@{', '%{', '&{', '*{', '=')
 
 
 def escape(item):
-    if not is_string(item):
+    if not isinstance(item, str):
         return item
     if item in _CONTROL_WORDS:
         return '\\' + item
@@ -75,7 +73,7 @@ class Unescaper:
         return chr(ordinal)
 
     def unescape(self, item):
-        if not (is_string(item) and '\\' in item):
+        if not isinstance(item, str) or '\\' not in item:
             return item
         return self._escape_sequences.sub(self._handle_escapes, item)
 
@@ -93,28 +91,30 @@ class Unescaper:
 unescape = Unescaper().unescape
 
 
-def split_from_equals(string):
-    from robot.variables import VariableIterator
-    if not is_string(string) or '=' not in string:
-        return string, None
-    variables = VariableIterator(string, ignore_errors=True)
-    if not variables and '\\' not in string:
-        return tuple(string.split('=', 1))
+def split_from_equals(value):
+    from robot.variables import VariableMatches
+    if not isinstance(value, str) or '=' not in value:
+        return value, None
+    matches = VariableMatches(value, ignore_errors=True)
+    if not matches and '\\' not in value:
+        return tuple(value.split('=', 1))
     try:
-        index = _find_split_index(string, variables)
+        index = _find_split_index(value, matches)
     except ValueError:
-        return string, None
-    return string[:index], string[index+1:]
+        return value, None
+    return value[:index], value[index + 1:]
 
 
-def _find_split_index(string, variables):
+def _find_split_index(string, matches):
+    remaining = string
     relative_index = 0
-    for before, match, string in variables:
+    for match in matches:
         try:
-            return _find_split_index_from_part(before) + relative_index
+            return _find_split_index_from_part(match.before) + relative_index
         except ValueError:
-            relative_index += len(before) + len(match)
-    return _find_split_index_from_part(string) + relative_index
+            remaining = match.after
+            relative_index += match.end
+    return _find_split_index_from_part(remaining) + relative_index
 
 
 def _find_split_index_from_part(string):
