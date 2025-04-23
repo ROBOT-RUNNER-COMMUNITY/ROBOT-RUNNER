@@ -39,7 +39,7 @@ class RobotTestRunner(QWidget):
         super().__init__()
         self.version_label = ""
         self.test_directory = ""
-        self.output_directory = ""
+        self.output_directory = ""  # Initialize output_directory
         self.drag_position = QPoint()
         self._load_config()
         self.init_ui()
@@ -224,7 +224,7 @@ class RobotTestRunner(QWidget):
         
     def _init_dashboard_page(self):
         """Initialize the dashboard page"""
-        self.dashboard_loader = DashboardDataLoader()
+        self.dashboard_loader = DashboardDataLoader(self.output_directory)
         self.dashboard_page = DashboardWidget()
         self.dashboard_controller = DashboardController(self.dashboard_page, self.dashboard_loader)
         self.stacked_widget.addWidget(self.dashboard_page)

@@ -6,10 +6,14 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class DashboardDataLoader(QObject):
     data_loaded = pyqtSignal(dict)
     
-    def __init__(self):
+    def __init__(self, results_dir=None):
         super().__init__()
-        self.results_dir = os.path.join("tests-for-validation", "Results")
+        self.set_results_dir(results_dir)
         self.is_loading = False
+        
+    def set_results_dir(self, results_dir):
+        """Set or update the results directory path"""
+        self.results_dir = results_dir if results_dir else os.path.join("tests-for-validation", "Results")
         
     def load_data(self, force=False):
         if self.is_loading:
