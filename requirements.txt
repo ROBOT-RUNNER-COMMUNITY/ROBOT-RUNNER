@@ -14,4 +14,4 @@ robotframework-seleniumlibrary==6.0.0
 robotframework-selenium2library==3.0.0
 robotframework-requests==0.9.0
 pyinstaller
-selenium
+selenium==4.5.0

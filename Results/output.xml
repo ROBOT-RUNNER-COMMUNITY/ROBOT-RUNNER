@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 6.1.1 (Python 3.12.3 on win32)" generated="20250425 21:38:57.630" rpa="false" schemaversion="4">
+<suite id="s1" name="01 Test One" source="C:\Users\khaba\OneDrive\Bureau\ROBBOT RUNNER 2\ROBOT-RUNNER\tests-for-validation\01_Test_One.robot">
+<test id="s1-t1" name="Test Recherche Wikipedia" line="12">
+<kw name="Open Browser" library="SeleniumLibrary">
+<arg>${URL}</arg>
+<arg>${BROWSER}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<msg timestamp="20250425 21:38:57.907" level="INFO">Opening browser 'Chrome' to base url 'https://www.wikipedia.org/'.</msg>
+<msg timestamp="20250425 21:38:58.006" level="INFO">Cannot capture screenshot because no browser is open.</msg>
+<msg timestamp="20250425 21:38:58.006" level="FAIL">WebDriverException: Message: 'chromedriver' executable needs to be in PATH. Please see https://chromedriver.chromium.org/home
+</msg>
+<status status="FAIL" starttime="20250425 21:38:57.906" endtime="20250425 21:38:58.009"/>
+</kw>
+<kw name="Maximize Browser Window" library="SeleniumLibrary">
+<doc>Maximizes current browser window.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.011" endtime="20250425 21:38:58.011"/>
+</kw>
+<kw name="Wait Until Element Is Visible" library="SeleniumLibrary">
+<arg>${SEARCH_FIELD}</arg>
+<arg>timeout=5s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.011" endtime="20250425 21:38:58.011"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>${SEARCH_FIELD}</arg>
+<arg>Robot Framework</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.012" endtime="20250425 21:38:58.012"/>
+</kw>
+<kw name="Click Element" library="SeleniumLibrary">
+<arg>${SEARCH_BUTTON}</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.012" endtime="20250425 21:38:58.012"/>
+</kw>
+<kw name="Wait Until Element Is Visible" library="SeleniumLibrary">
+<arg>${RESULT_TITLE}</arg>
+<arg>timeout=5s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.012" endtime="20250425 21:38:58.013"/>
+</kw>
+<kw name="Element Should Contain" library="SeleniumLibrary">
+<arg>${RESULT_TITLE}</arg>
+<arg>Robot Framework</arg>
+<doc>Verifies that element ``locator`` contains text ``expected``.</doc>
+<status status="NOT RUN" starttime="20250425 21:38:58.013" endtime="20250425 21:38:58.013"/>
+</kw>
+<kw name="Close Browser" library="SeleniumLibrary" type="TEARDOWN">
+<doc>Closes the current browser.</doc>
+<status status="PASS" starttime="20250425 21:38:58.014" endtime="20250425 21:38:58.014"/>
+</kw>
+<status status="FAIL" starttime="20250425 21:38:57.906" endtime="20250425 21:38:58.015">WebDriverException: Message: 'chromedriver' executable needs to be in PATH. Please see https://chromedriver.chromium.org/home
+</status>
+</test>
+<status status="FAIL" starttime="20250425 21:38:57.632" endtime="20250425 21:38:58.016"/>
+</suite>
+<statistics>
+<total>
+<stat pass="0" fail="1" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="0" fail="1" skip="0" id="s1" name="01 Test One">01 Test One</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
