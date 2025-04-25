@@ -19,6 +19,19 @@ widgets/__pycache__
 __pycache__
 
 dist
+build/RobotTestRunner
+dist/RobotTestRunner
+dist/RobotTestRunner-*.tar.gz
+dist/RobotTestRunner-*.zip
+dist/RobotTestRunner-*.tar.bz2
+dist/RobotTestRunner-*.tar.xz
+dist/RobotTestRunner-*.tar.lzma
+dist/RobotTestRunner-*.tar.zst
+dist/RobotTestRunner-*.tar.lzo
+dist/RobotTestRunner-*.tar.lz
+dist/RobotTestRunner-*.tar.lzop
+dist/RobotTestRunner-*.tar.lz4
+
 *.egg-info
 *.egg
 *.whl
@@ -39,3 +52,17 @@ ui/dashboard/__pycache__
 
 # Not pushing environment files
 venv
+installed.txt
+
+# ignore all test files
+tests-for-validation/robotframework-*.log
+tests-for-validation/robotframework-*.xml
+tests-for-validation/robotframework-*.html
+tests-for-validation/robotframework-*.json
+tests-for-validation/robotframework-*.txt
+tests-for-validation/robotframework-*.png
+tests-for-validation/robotframework-*.pdf
+
+# Ignore files for pyinstaller
+main.spec
+RobotTestRunner.spec

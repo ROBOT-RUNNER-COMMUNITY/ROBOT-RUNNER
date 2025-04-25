@@ -29,30 +29,24 @@ class SideBar(QWidget):
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
  
         logo_icon = QLabel()
-        pixmap = QPixmap(resource_path("images/Logo.png")).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        pixmap = QPixmap(resource_path("images/Logo.png")).scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         logo_icon.setPixmap(pixmap)
-        logo_icon.setStyleSheet("background: transparent;")
- 
+        logo_icon.setStyleSheet("border: 2px solid transparent; background: transparent;")
+
         logo_text = QLabel("Robot Runner")
-        logo_text.setStyleSheet("font-size: 18px; font-weight: bold; color: white; background: transparent;")
+        logo_text.setStyleSheet("font-size: 18px; font-weight: bold; color: #50C878; background: transparent; border: 2px solid transparent;")
         logo_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
  
         logo_layout.addWidget(logo_icon)
-        logo_layout.addSpacing(8)
+        logo_layout.addSpacing(6)
         logo_layout.addWidget(logo_text)
  
         layout.addLayout(logo_layout)
- 
- 
- 
         # Main Navigation Section
         self.btn_dashboard = QPushButton(QIcon(resource_path("images/dashboard.png")), " Dashboard")
         self.btn_tests = QPushButton(QIcon(resource_path("images/Tests.png")), " Test Selection")
  
- 
- 
         self.btn_analytics = QPushButton(QIcon(resource_path("images/analytics.png")), " Analytics")
- 
  
         self.btn_settings = QPushButton(QIcon(resource_path("images/settings.png")), " Settings")
         self.btn_help = QPushButton(QIcon(resource_path("images/help.png")), " Help")
@@ -111,4 +105,3 @@ class SideBar(QWidget):
                 margin-bottom: 15px;
             }
         """)
- 
