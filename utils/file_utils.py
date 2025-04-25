@@ -22,9 +22,11 @@ def select_output_directory(window):
         window.output_directory = dir_path
         window.fileLabel.setText(f"Results saved in: {dir_path}")
         window.fileLabel.setStyleSheet("color: green")
-        # Update the dashboard loader if it exists
+        # Update the dashboard loader
         if hasattr(window, 'dashboard_loader'):
             window.dashboard_loader.set_results_dir(dir_path)
+            # Optional: trigger immediate refresh
+            window.dashboard_loader.load_data(force=True)
 
 def clear_results_directory(window):
     if window.output_directory and os.path.exists(window.output_directory):

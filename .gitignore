@@ -36,3 +36,6 @@ dist
 # ignore all test files
 ui/analytics/__pycache__
 ui/dashboard/__pycache__
+
+# Not pushing environment files
+venv

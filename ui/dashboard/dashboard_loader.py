@@ -8,12 +8,13 @@ class DashboardDataLoader(QObject):
     
     def __init__(self, results_dir=None):
         super().__init__()
-        self.set_results_dir(results_dir)
+        self.results_dir = None  # Initialize as None
+        self.set_results_dir(results_dir)  # Set via method
         self.is_loading = False
         
     def set_results_dir(self, results_dir):
-        """Set or update the results directory path"""
-        self.results_dir = results_dir if results_dir else os.path.join("tests-for-validation", "Results")
+        """Set the results directory (mandatory)"""
+        self.results_dir = results_dir  # No fallback directory
         
     def load_data(self, force=False):
         if self.is_loading:
@@ -30,16 +31,25 @@ class DashboardDataLoader(QObject):
         }
         
         try:
+            # Strict directory checks
+            if not self.results_dir:
+                print("No results directory configured")
+                self.data_loaded.emit(stats)
+                return
+                
             if not os.path.exists(self.results_dir):
+                print(f"Specified directory doesn't exist: {self.results_dir}")
                 self.data_loaded.emit(stats)
                 return
                 
             output_xml = os.path.join(self.results_dir, "output.xml")
             if not os.path.exists(output_xml):
+                print(f"output.xml not found in: {self.results_dir}")
                 self.data_loaded.emit(stats)
                 return
                 
             if os.path.getsize(output_xml) == 0:
+                print("output.xml is empty")
                 self.data_loaded.emit(stats)
                 return
                 
@@ -115,7 +125,7 @@ class DashboardDataLoader(QObject):
             self.data_loaded.emit(stats)
             
         except ET.ParseError as e:
-            print(f"Error parsing XML: {e}")
+            print(f"XML parsing error: {e}")
             self.data_loaded.emit(stats)
         except Exception as e:
             print(f"Error loading dashboard data: {e}")
