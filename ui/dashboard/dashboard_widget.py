@@ -17,7 +17,23 @@ class DashboardWidget(QWidget):
         # Refresh button
         refresh_layout = QHBoxLayout()
         self.refresh_button = QPushButton("↻ Refresh Dashboard")
-        self.refresh_button.setStyleSheet("font-size: 12px; padding: 5px;")
+        self.refresh_button.setStyleSheet("""
+            QPushButton {
+                font-size: 12px; 
+                padding: 8px 12px;
+                border-radius: 4px;
+                min-width: 150px;
+                color: white;  /* couleur par défaut */
+            }
+            QPushButton:hover {
+                background-color: #28a745;  /* vert */
+                color: black;               /* texte noir */
+            }
+            QPushButton:pressed {
+                background: #218838;        /* vert foncé pressé */
+                color: black;
+            }
+        """)
         refresh_layout.addWidget(self.refresh_button)
         refresh_layout.addStretch()
         self.dashboard_layout.addLayout(refresh_layout)

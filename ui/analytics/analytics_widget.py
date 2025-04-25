@@ -20,17 +20,19 @@ class AnalyticsWidget(QWidget):
         self.refresh_button = QPushButton("↻ Refresh Analytics")
         self.refresh_button.setStyleSheet("""
             QPushButton {
-                font-size: 12px; 
+                font-size: 12px;
                 padding: 8px 12px;
-                border: 1px solid #ddd;
                 border-radius: 4px;
                 min-width: 150px;
+                color: white;  /* couleur par défaut */
             }
             QPushButton:hover {
-                background: #e9ecef;
+                background-color: #28a745;  /* vert */
+                color: black;               /* texte noir */
             }
             QPushButton:pressed {
-                background: #dee2e6;
+                background: #218838;        /* vert foncé pressé */
+                color: black;
             }
         """)
         refresh_layout.addWidget(self.refresh_button)
