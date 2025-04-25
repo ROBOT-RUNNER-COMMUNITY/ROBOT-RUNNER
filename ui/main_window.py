@@ -39,7 +39,7 @@ class RobotTestRunner(QWidget):
         super().__init__()
         self.version_label = ""
         self.test_directory = ""
-        self.output_directory = ""  # Initialize output_directory
+        self.output_directory = ""  # Initialize empty
         self.drag_position = QPoint()
         self._load_config()
         self.init_ui()

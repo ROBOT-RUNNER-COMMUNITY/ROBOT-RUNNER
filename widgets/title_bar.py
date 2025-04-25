@@ -16,20 +16,20 @@ class TitleBar(QWidget):
 
         layout.addStretch()
 
-        # Buttons
+        
         self.minimize_button = QPushButton("_")
         self.maximize_button = QPushButton("🗖")
         self.close_button = QPushButton("X")
 
-        # Button font and size
+
         button_font = QFont()
         button_font.setPointSize(14)
         for btn in [self.minimize_button, self.maximize_button, self.close_button]:
             btn.setFont(button_font)
-            btn.setFixedSize(QSize(32, 32))  # Slightly larger buttons
+            btn.setFixedSize(QSize(32, 32))
             layout.addWidget(btn)
 
-        # Connect signals
+        
         if self.parent_window:
             self.minimize_button.clicked.connect(parent_window.showMinimized)
             self.close_button.clicked.connect(parent_window.close)
@@ -69,6 +69,6 @@ class TitleBar(QWidget):
     def update_maximize_button(self):
         if self.parent_window:
             if self.parent_window.isMaximized():
-                self.maximize_button.setText("🗗")  # Restore
+                self.maximize_button.setText("🗗")  
             else:
-                self.maximize_button.setText("🗖")  # Maximize
+                self.maximize_button.setText("🗖")  
