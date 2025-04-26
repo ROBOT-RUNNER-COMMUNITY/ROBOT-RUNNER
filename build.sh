@@ -1,4 +1,12 @@
 #!/bin/bash
+#####################################################################################
+# Author : Achraf KHABAR
+# Date : 2023-10-01
+# Description : Script de construction pour le projet RobotTestRunner
+# Version : 1.0
+#####################################################################################
+
+set -x
 
 EXEC_NAME="RobotTestRunner"
 
@@ -17,7 +25,7 @@ else
     SEP=";"
 fi
 
-pyinstaller --noconfirm --onefile --windowed --name RobotTestRunner --add-data "./style/style.qss${SEP}style" --add-data "./images/*${SEP}images" --icon=images/Logo_exe_grand.ico main.py
+pyinstaller --noconfirm --onefile --windowed --name RobotTestRunner --add-data "./config.xml;." --add-data "./style/style.qss${SEP}style" --add-data "./images/*${SEP}images" --icon=images/Logo_exe_grand.ico main.py
 
 if [ -f "dist/$EXEC_NAME" ] || [ -f "dist/$EXEC_NAME.exe" ]; then
     echo "L'exécutable a été généré avec succès dans le dossier 'dist/'"
