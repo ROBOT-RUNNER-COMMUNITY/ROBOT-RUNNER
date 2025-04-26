@@ -83,7 +83,8 @@ QListWidget::item {
 
 QListWidget::item:selected {
     background-color: #45475a;
-    color: #89b4fa;
+    color: #0ccb65;
+    
 }
 
 QListWidget::item:hover {
@@ -226,5 +227,27 @@ QComboBox QAbstractItemView {
     background-color: #313244;
     border: 1px solid #45475a;
     selection-background-color: #45475a;
+    color: #cdd6f4;
+}
+
+/* Help Page Styling */
+HelpWidget QLabel {
+    color: #cdd6f4;
+    padding: 5px 0;
+}
+
+HelpWidget QPushButton {
+    background-color: #313244;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 8px;
+    color: #89b4fa;
+    font-weight: normal;
+    text-align: left;
+    min-width: 200px;
+}
+
+HelpWidget QPushButton:hover {
+    background-color: #45475a;
     color: #cdd6f4;
 }

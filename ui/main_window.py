@@ -22,6 +22,8 @@ from ui.dashboard.dashboard_widget import DashboardWidget
 from ui.dashboard.dashboard_controller import DashboardController
 from ui.analytics.analytics_widget import AnalyticsWidget
 from ui.analytics.analytics_controller import AnalyticsController
+from ui.help.help_widget import HelpWidget
+from ui.help.help_controller import HelpController
 
 matplotlib.use('Qt5Agg')
 
@@ -286,6 +288,16 @@ class RobotTestRunner(QWidget):
         self.settings_layout.addStretch()
         self.stacked_widget.addWidget(self.settings_page)
 
+    def _init_help_page(self):
+        """Initialize the simplified help page"""
+        self.help_page = HelpWidget()
+        self.help_controller = HelpController(self.help_page)
+        self.stacked_widget.addWidget(self.help_page)
+
+    def _handle_help_link(self, url):
+        """Handle help link clicks"""
+        print(f"Help link clicked: {url}")  # You can add analytics here if needed
+
     def _save_settings(self):
         """Save settings to persistent storage"""
         # Execution Settings
@@ -426,13 +438,3 @@ class RobotTestRunner(QWidget):
         if event.buttons() == Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
-
-    def _init_help_page(self):
-        """Initialize help page"""
-        self.help_page = QWidget()
-        self.help_layout = QVBoxLayout()
-        self.help_page.setLayout(self.help_layout)
-        label = QLabel("Help Page\n\n- User manual\n- Troubleshooting\n- Contact support")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.help_layout.addWidget(label)
-        self.stacked_widget.addWidget(self.help_page)
