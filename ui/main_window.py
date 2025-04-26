@@ -1,5 +1,6 @@
 # ui/main_window.py
 import os
+import sys
 import xml.etree.ElementTree as ET
 import matplotlib
 from PyQt6.QtWidgets import (
@@ -25,6 +26,7 @@ from ui.analytics.analytics_controller import AnalyticsController
 from ui.help.help_widget import HelpWidget
 from ui.help.help_controller import HelpController
 
+
 matplotlib.use('Qt5Agg')
 
 class RobotTestRunner(QWidget):
@@ -43,9 +45,25 @@ class RobotTestRunner(QWidget):
 
     def _load_config(self):
         try:
-            tree = ET.parse('config.xml')
-            root = tree.getroot()
-            self.version_label = f"© Robot Runner {root[0].text}"
+            # Try multiple paths to locate the config file
+            config_paths = [
+                'config.xml',  # Development path
+                os.path.join(os.path.dirname(sys.executable), 'config.xml'),  # EXE location
+                os.path.join(sys._MEIPASS, 'config.xml')  # PyInstaller temp directory
+            ]
+            
+            config_loaded = False
+            for path in config_paths:
+                if os.path.exists(path):
+                    tree = ET.parse(path)
+                    root = tree.getroot()
+                    self.version_label = f"© Robot Runner {root[0].text}"
+                    config_loaded = True
+                    break
+                    
+            if not config_loaded:
+                raise FileNotFoundError("Config file not found in any standard location")
+                
         except Exception as e:
             print(f"Error loading config: {e}")
             self.version_label = "© Robot Runner"

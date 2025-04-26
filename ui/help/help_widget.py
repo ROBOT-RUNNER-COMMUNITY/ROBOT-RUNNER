@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 
+from utils.resource_utils import resource_path
+
 class HelpWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -18,7 +20,7 @@ class HelpWidget(QWidget):
         title.setStyleSheet("""
             font-size: 18px; 
             font-weight: bold; 
-            color: #89b4fa;
+            color: #22d053;
             margin-bottom: 15px;
         """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -42,7 +44,7 @@ class HelpWidget(QWidget):
         """Add a compact icon button"""
         btn = QPushButton()
         btn.setToolTip(tooltip)
-        btn.setIcon(QIcon(f"images/{icon_path}"))
+        btn.setIcon(QIcon(resource_path(f"images/{icon_path}")))
         btn.setIconSize(QSize(32, 32))  # Smaller icon size
         btn.setFixedSize(50, 50)  # Smaller button size
         btn.setStyleSheet("""
