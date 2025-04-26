@@ -1,10 +1,15 @@
 # ui/main_window.py
 import os
 import xml.etree.ElementTree as ET
-from datetime import datetime
-import numpy as np
-import pandas as pd
 import matplotlib
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
+    QListWidget, QCheckBox, QSpinBox, QScrollArea, 
+    QStackedWidget, QMessageBox, QLineEdit, QGroupBox, 
+    QFormLayout
+)
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QTimer, QSettings
+from PyQt6.QtGui import QFont
 
 from ui.logo_splash import LogoSplash
 from ui.styles import apply_styles
@@ -12,25 +17,13 @@ from utils.file_utils import clear_results_directory, select_directory, select_o
 from utils.test_utils import export_results, load_tests, open_log, open_report, run_tests
 from widgets.sidebar import SideBar
 from widgets.title_bar import TitleBar
-
-matplotlib.use('Qt5Agg')
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QListWidget, QListWidgetItem, QFrame, QCheckBox, QSpinBox,
-    QScrollArea, QStackedWidget, QSizePolicy, QApplication, QMessageBox
-)
-from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject, QTimer
-from PyQt6.QtGui import QColor, QPainter, QFont
-
 from ui.dashboard.dashboard_loader import DashboardDataLoader
 from ui.dashboard.dashboard_widget import DashboardWidget
 from ui.dashboard.dashboard_controller import DashboardController
 from ui.analytics.analytics_widget import AnalyticsWidget
 from ui.analytics.analytics_controller import AnalyticsController
 
-# Suppress Qt network errors
-os.environ["QT_LOGGING_RULES"] = "qt.network.ssl.warning=false"
-os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-logging"
+matplotlib.use('Qt5Agg')
 
 class RobotTestRunner(QWidget):
     windowStateChanged = pyqtSignal(object)
@@ -39,8 +32,9 @@ class RobotTestRunner(QWidget):
         super().__init__()
         self.version_label = ""
         self.test_directory = ""
-        self.output_directory = ""  # Initialize empty
+        self.output_directory = ""
         self.drag_position = QPoint()
+        self.settings = QSettings("RobotTestRunner", "RobotTestRunner")
         self._load_config()
         self.init_ui()
         self.show_splash()
@@ -142,7 +136,7 @@ class RobotTestRunner(QWidget):
         paramLayout = QHBoxLayout()
         self.processLabel = QLabel("Number of subprocesses:")
         self.processInput = QSpinBox()
-        self.processInput.setValue(2)
+        self.processInput.setValue(self.settings.value("subprocess_count", 2, type=int))
         self.processInput.setFixedWidth(50)
         self.processInput.setMinimum(1)
         self.processInput.setMaximum(50)
@@ -194,13 +188,179 @@ class RobotTestRunner(QWidget):
         self.version_layout.addWidget(self.version)
         self.content_layout.addLayout(self.version_layout)
 
+    def _init_dashboard_page(self):
+        """Initialize the dashboard page"""
+        self.dashboard_loader = DashboardDataLoader(self.output_directory)
+        self.dashboard_page = DashboardWidget()
+        self.dashboard_controller = DashboardController(self.dashboard_page, self.dashboard_loader)
+        self.stacked_widget.addWidget(self.dashboard_page)
+
+    def _init_analytics_page(self):
+        """Initialize the analytics page"""
+        self.analytics_page = AnalyticsWidget()
+        self.analytics_controller = AnalyticsController(self.analytics_page, self.dashboard_loader)
+        self.stacked_widget.addWidget(self.analytics_page)
+
+    def _init_settings_page(self):
+        """Initialize settings page with working options"""
+        self.settings_page = QWidget()
+        self.settings_layout = QVBoxLayout()
+        self.settings_page.setLayout(self.settings_layout)
+        
+        # Execution Settings Group
+        execution_group = QGroupBox("Execution Settings")
+        execution_layout = QFormLayout()
+        
+        # Default Process Count
+        self.default_process_count = QSpinBox()
+        self.default_process_count.setValue(self.settings.value("subprocess_count", 2, type=int))
+        self.default_process_count.setRange(1, 50)
+        execution_layout.addRow("Default Process Count:", self.default_process_count)
+        
+        # Default Timeout
+        self.default_timeout = QSpinBox()
+        self.default_timeout.setValue(self.settings.value("default_timeout", 300, type=int))
+        self.default_timeout.setRange(30, 3600)
+        self.default_timeout.setSuffix(" seconds")
+        execution_layout.addRow("Default Test Timeout:", self.default_timeout)
+        
+        # Retry Failed Tests
+        self.retry_failed = QCheckBox("Automatically retry failed tests")
+        self.retry_failed.setChecked(self.settings.value("retry_failed", False, type=bool))
+        execution_layout.addRow(self.retry_failed)
+        
+        execution_group.setLayout(execution_layout)
+        self.settings_layout.addWidget(execution_group)
+        
+        # UI Settings Group
+        ui_group = QGroupBox("Interface Settings")
+        ui_layout = QFormLayout()
+        
+        # Font Size
+        self.font_size = QSpinBox()
+        self.font_size.setValue(self.settings.value("font_size", 10, type=int))
+        self.font_size.setRange(8, 16)
+        ui_layout.addRow("Font Size:", self.font_size)
+        
+        # Show Tooltips
+        self.show_tooltips = QCheckBox("Show tooltips")
+        self.show_tooltips.setChecked(self.settings.value("show_tooltips", True, type=bool))
+        ui_layout.addRow(self.show_tooltips)
+        
+        ui_group.setLayout(ui_layout)
+        self.settings_layout.addWidget(ui_group)
+        
+        # Results Settings Group
+        results_group = QGroupBox("Results Settings")
+        results_layout = QFormLayout()
+        
+        # Auto-open Report
+        self.auto_open_report = QCheckBox("Open report after test completion")
+        self.auto_open_report.setChecked(self.settings.value("auto_open_report", False, type=bool))
+        results_layout.addRow(self.auto_open_report)
+        
+        # Keep History
+        self.keep_history = QSpinBox()
+        self.keep_history.setValue(self.settings.value("keep_history", 5, type=int))
+        self.keep_history.setRange(1, 30)
+        self.keep_history.setSuffix(" days")
+        results_layout.addRow("Keep results history:", self.keep_history)
+        
+        results_group.setLayout(results_layout)
+        self.settings_layout.addWidget(results_group)
+        
+        # Buttons Layout
+        buttons_layout = QHBoxLayout()
+        
+        # Save Button
+        save_button = QPushButton("Save Settings")
+        save_button.clicked.connect(self._save_settings)
+        buttons_layout.addWidget(save_button)
+        
+        # Reset Button
+        reset_button = QPushButton("Reset to Defaults")
+        reset_button.clicked.connect(self._reset_settings)
+        buttons_layout.addWidget(reset_button)
+        
+        self.settings_layout.addLayout(buttons_layout)
+        self.settings_layout.addStretch()
+        self.stacked_widget.addWidget(self.settings_page)
+
+    def _save_settings(self):
+        """Save settings to persistent storage"""
+        # Execution Settings
+        self.settings.setValue("subprocess_count", self.default_process_count.value())
+        self.settings.setValue("default_timeout", self.default_timeout.value())
+        self.settings.setValue("retry_failed", self.retry_failed.isChecked())
+        
+        # UI Settings
+        self.settings.setValue("font_size", self.font_size.value())
+        self.settings.setValue("show_tooltips", self.show_tooltips.isChecked())
+        
+        # Results Settings
+        self.settings.setValue("auto_open_report", self.auto_open_report.isChecked())
+        self.settings.setValue("keep_history", self.keep_history.value())
+        
+        # Update current values in the main interface
+        self.processInput.setValue(self.default_process_count.value())
+        
+        # Apply font size changes
+        font = QFont()
+        font.setPointSize(self.font_size.value())
+        self.setFont(font)
+        
+        QMessageBox.information(self, "Settings Saved", "Settings have been saved successfully.")
+
+    def _reset_settings(self):
+        """Reset settings to default values"""
+        reply = QMessageBox.question(
+            self, 
+            "Reset Settings",
+            "Are you sure you want to reset all settings to default values?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.settings.clear()
+            
+            # Execution Settings
+            self.default_process_count.setValue(2)
+            self.default_timeout.setValue(300)
+            self.retry_failed.setChecked(False)
+            
+            # UI Settings
+            self.font_size.setValue(10)
+            self.show_tooltips.setChecked(True)
+            
+            # Results Settings
+            self.auto_open_report.setChecked(False)
+            self.keep_history.setValue(5)
+            
+            # Update main interface
+            self.processInput.setValue(2)
+            
+            # Reset font size
+            font = QFont()
+            font.setPointSize(10)
+            self.setFont(font)
+            
+            QMessageBox.information(self, "Settings Reset", "Settings have been reset to default values.")
+
     def run_tests_with_update(self):
         """Run tests and then update dashboard"""
         try:
+            # Save process count to settings
+            self.settings.setValue("subprocess_count", self.processInput.value())
+            
             # Clear old results first
             clear_results_directory(self)
             # Run new tests
             run_tests(self)
+            
+            # Auto-open report if enabled
+            if self.settings.value("auto_open_report", False, type=bool):
+                QTimer.singleShot(1000, lambda: open_report(self))
+            
             # Only refresh if we're on dashboard or analytics page
             if not self.content_scroll.isVisible():
                 QTimer.singleShot(2000, self.force_refresh_current_page)
@@ -222,39 +382,6 @@ class RobotTestRunner(QWidget):
         if not self.content_scroll.isVisible():
             self.force_refresh_current_page()
         
-    def _init_dashboard_page(self):
-        """Initialize the dashboard page"""
-        self.dashboard_loader = DashboardDataLoader(self.output_directory)
-        self.dashboard_page = DashboardWidget()
-        self.dashboard_controller = DashboardController(self.dashboard_page, self.dashboard_loader)
-        self.stacked_widget.addWidget(self.dashboard_page)
-
-    def _init_analytics_page(self):
-        """Initialize the analytics page"""
-        self.analytics_page = AnalyticsWidget()
-        self.analytics_controller = AnalyticsController(self.analytics_page, self.dashboard_loader)
-        self.stacked_widget.addWidget(self.analytics_page)
-
-    def _init_settings_page(self):
-        """Initialize settings page"""
-        self.settings_page = QWidget()
-        self.settings_layout = QVBoxLayout()
-        self.settings_page.setLayout(self.settings_layout)
-        label = QLabel("Settings Page\n\n- Application preferences\n- Test configurations\n- UI customization")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.settings_layout.addWidget(label)
-        self.stacked_widget.addWidget(self.settings_page)
-
-    def _init_help_page(self):
-        """Initialize help page"""
-        self.help_page = QWidget()
-        self.help_layout = QVBoxLayout()
-        self.help_page.setLayout(self.help_layout)
-        label = QLabel("Help Page\n\n- User manual\n- Troubleshooting\n- Contact support")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.help_layout.addWidget(label)
-        self.stacked_widget.addWidget(self.help_page)
-
     def _connect_signals(self):
         """Connect all signals"""
         self.sidebar.testSelectionClicked.connect(self.show_main_content)
@@ -298,4 +425,14 @@ class RobotTestRunner(QWidget):
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()  
+            event.accept()
+
+    def _init_help_page(self):
+        """Initialize help page"""
+        self.help_page = QWidget()
+        self.help_layout = QVBoxLayout()
+        self.help_page.setLayout(self.help_layout)
+        label = QLabel("Help Page\n\n- User manual\n- Troubleshooting\n- Contact support")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.help_layout.addWidget(label)
+        self.stacked_widget.addWidget(self.help_page)
