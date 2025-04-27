@@ -39,3 +39,9 @@ else
     echo "Erreur lors de la génération de l'exécutable"
     exit 1
 fi
+
+
+
+
+
+
