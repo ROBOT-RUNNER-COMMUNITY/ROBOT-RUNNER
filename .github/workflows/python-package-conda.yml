@@ -7,6 +7,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+env:
+  PYTHON_VERSION: "3.10.11"
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -31,6 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install numpy pandas matplotlib PyQt6
 
       - name: Run unit tests
         run: |
@@ -46,16 +50,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install pyinstaller numpy pandas matplotlib PyQt6
       
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconfirm --onefile --windowed main.py
+          chmod +x ./build.sh
+          ./build.sh
 
       - name: Install Inno Setup
         run: choco install -y innosetup
@@ -105,9 +110,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          name: Release ${{ steps.version.outputs.VERSION }}
-          body: "New release of the desktop application."
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Release v${{ steps.version.outputs.VERSION }}
+          body: "Nouvelle version de Robot Test Runner incluant toutes les dépendances nécessaires."
           draft: false
           prerelease: false
           files: dist/*.exe

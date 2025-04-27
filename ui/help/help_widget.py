@@ -82,7 +82,7 @@ class HelpWidget(QWidget):
         for text, icon, url in buttons:
             btn = PerfectCircleButton(icon)
             btn.setToolTip(text)
-            btn.clicked.connect(lambda _, u=url: self.open_url(u))
+            btn.clicked.connect(lambda _    , u=url: self.open_url(u))
             buttons_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addLayout(buttons_layout)
