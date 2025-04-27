@@ -2,8 +2,8 @@
 #####################################################################################
 # Author : Achraf KHABAR
 # Updated by : ChatGPT
-# Description : Build Script for RobotTestRunner (Fixed PyQt6 packaging)
-# Version : 2.1
+# Description : Build Script for RobotTestRunner (with full PyQt6 packaging)
+# Version : 2.2
 #####################################################################################
 
 set -x
@@ -40,6 +40,7 @@ pyinstaller --noconfirm --onefile --windowed \
   --add-data "${PYQT6_PLUGIN_PATH}${SEP}PyQt6/Qt/plugins" \
   --collect-all PyQt6 \
   --collect-submodules PyQt6 \
+  --hidden-import PyQt6 \
   --hidden-import PyQt6.QtWidgets \
   --hidden-import PyQt6.QtGui \
   --hidden-import PyQt6.QtCore \
