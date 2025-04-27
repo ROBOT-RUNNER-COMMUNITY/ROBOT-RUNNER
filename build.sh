@@ -31,7 +31,7 @@ fi
 PYQT6_PLUGIN_PATH=$(python -c "import PyQt6.QtCore; print(PyQt6.QtCore.QLibraryInfo.path(PyQt6.QtCore.QLibraryInfo.PluginsPath))")
 
 # Build the executable
-pyinstaller --noconfirm --onefile --windowed \
+pyinstaller --noconfirm --windowed \
   --name "$EXEC_NAME" \
   --icon=images/Logo_exe_grand.ico \
   --add-data "./config.xml;." \
