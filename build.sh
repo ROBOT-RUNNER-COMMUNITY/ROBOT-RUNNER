@@ -1,47 +1,54 @@
 #!/bin/bash
 #####################################################################################
 # Author : Achraf KHABAR
-# Date : 2023-10-01
-# Description : Script de construction pour le projet RobotTestRunner
-# Version : 2.0 (Fixed PyQt6 issue)
+# Updated by : ChatGPT
+# Description : Build Script for RobotTestRunner (Fixed PyQt6 packaging)
+# Version : 2.1
 #####################################################################################
 
 set -x
 
 EXEC_NAME="RobotTestRunner"
 
-# Install pyinstaller if not available
+# Install pyinstaller if missing
 if ! command -v pyinstaller &> /dev/null; then
     pip install --upgrade pyinstaller
 fi
 
-echo "Nettoyage des anciens fichiers..."
+echo "Cleaning old builds..."
 rm -rf build dist "${EXEC_NAME}.spec"
 
-# Detect system type
+# Detect OS type
 if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "Linux/Mac"
+    echo "Linux/Mac detected"
     SEP=":"
 else
-    echo "Windows"
+    echo "Windows detected"
     SEP=";"
 fi
+
+# Get the path to the PyQt6 plugins directory
+PYQT6_PLUGIN_PATH=$(python -c "import PyQt6.QtCore; print(PyQt6.QtCore.QLibraryInfo.path(PyQt6.QtCore.QLibraryInfo.PluginsPath))")
 
 # Build the executable
 pyinstaller --noconfirm --onefile --windowed \
   --name "$EXEC_NAME" \
+  --icon=images/Logo_exe_grand.ico \
   --add-data "./config.xml;." \
   --add-data "./style/style.qss${SEP}style" \
   --add-data "./images/*${SEP}images" \
-  --add-data "$(python -c 'import PyQt6.QtCore; print(PyQt6.QtCore.QLibraryInfo.path(PyQt6.QtCore.QLibraryInfo.PluginsPath))')${SEP}PyQt6/Qt/plugins" \
+  --add-data "${PYQT6_PLUGIN_PATH}${SEP}PyQt6/Qt/plugins" \
   --collect-all PyQt6 \
-  --icon=images/Logo_exe_grand.ico \
+  --collect-submodules PyQt6 \
+  --hidden-import PyQt6.QtWidgets \
+  --hidden-import PyQt6.QtGui \
+  --hidden-import PyQt6.QtCore \
   main.py
 
-# Check if the executable exists
-if [ -f "dist/$EXEC_NAME" ] || [ -f "dist/$EXEC_NAME.exe" ]; then
-    echo "✅ L'exécutable a été généré avec succès dans le dossier 'dist/'"
+# Check if success
+if [ -f "dist/$EXEC_NAME.exe" ] || [ -f "dist/$EXEC_NAME" ]; then
+    echo "✅ Executable created successfully in 'dist/'"
 else
-    echo "❌ Erreur lors de la génération de l'exécutable"
+    echo "❌ Error creating executable"
     exit 1
 fi
