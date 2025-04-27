@@ -34,7 +34,7 @@ PYQT6_PLUGIN_PATH=$(python -c "import PyQt6.QtCore; print(PyQt6.QtCore.QLibraryI
 pyinstaller --noconfirm --windowed \
   --name "$EXEC_NAME" \
   --icon=images/Logo_exe_grand.ico \
-  --add-data "./config.xml;." \
+  --add-data "./config.xml${SEP}." \
   --add-data "./style/style.qss${SEP}style" \
   --add-data "./images/*${SEP}images" \
   --add-data "${PYQT6_PLUGIN_PATH}${SEP}PyQt6/Qt/plugins" \
