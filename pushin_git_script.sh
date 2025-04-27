@@ -42,7 +42,7 @@ git add .
 # Commit the changes with the provided commit message
 git commit -m "$2"
 # Push the changes to the remote repository
-git push origin $1
+git push origin $1 --force
 # Check if the push was successful
 if [ $? -eq 0 ]; then
   echo "Changes pushed to branch '$1' successfully."
