@@ -57,13 +57,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller numpy pandas matplotlib PyQt6
       
+      - name: Make build script executable
+        shell: cmd
+        run: icacls build.sh /grant Everyone:RX
+    
       - name: Build Executable with PyInstaller
-        run: |
-          # Donner les permissions d'exécution au script
-          icacls build.sh /grant Everyone:(RX)
-          ./build.sh
+        shell: bash
+        run: ./build.sh
 
       - name: Verify executable exists
+        shell: pwsh
         run: |
           if (-not (Test-Path "dist\RobotTestRunner.exe")) {
               Write-Error "Executable not found at dist\RobotTestRunner.exe"
@@ -85,7 +88,7 @@ jobs:
 
       - name: Build Installer using Inno Setup
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./Setup.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./Setup.iss
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -121,7 +124,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Release v${{ steps.version.outputs.VERSION }}
-          body: "Nouvelle version de Robot Test Runner incluant toutes les dépendances nécessaires."
+          body: "New release of the desktop application including all required dependencies."
           draft: false
           prerelease: false
           files: dist/*.exe
