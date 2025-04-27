@@ -3,7 +3,7 @@
 # Author : Achraf KHABAR
 # Date : 2023-10-01
 # Description : Script de construction pour le projet RobotTestRunner
-# Version : 1.0
+# Version : 1.1
 #####################################################################################
 
 set -x
