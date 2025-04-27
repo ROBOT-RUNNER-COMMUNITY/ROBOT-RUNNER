@@ -66,3 +66,5 @@ tests-for-validation/robotframework-*.pdf
 # Ignore files for pyinstaller
 main.spec
 RobotTestRunner.spec
+
+nul
