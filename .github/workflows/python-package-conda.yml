@@ -2,9 +2,9 @@ name: Build and Deploy Installer
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 env:
@@ -87,8 +87,9 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build Installer using Inno Setup
+        shell: cmd
         run: |
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./Setup.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.version.outputs.VERSION }}" "Setup.iss"
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -124,7 +125,11 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Release v${{ steps.version.outputs.VERSION }}
-          body: "New release of the desktop application including all required dependencies."
+          body: |
+            New release of Robot Test Runner including:
+            - All required dependencies
+            - Automatic VC++ Redistributable installation
+            - Embedded Python environment
           draft: false
           prerelease: false
           files: dist/*.exe
