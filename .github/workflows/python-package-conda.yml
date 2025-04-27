@@ -59,11 +59,20 @@ jobs:
       
       - name: Build Executable with PyInstaller
         run: |
-          chmod +x ./build.sh
+          # Donner les permissions d'exécution au script
+          icacls build.sh /grant Everyone:(RX)
           ./build.sh
 
+      - name: Verify executable exists
+        run: |
+          if (-not (Test-Path "dist\RobotTestRunner.exe")) {
+              Write-Error "Executable not found at dist\RobotTestRunner.exe"
+              Get-ChildItem -Path dist | Write-Output
+              exit 1
+          }
+
       - name: Install Inno Setup
-        run: choco install -y innosetup
+        run: choco install -y innosetup --force
 
       - name: Extract version from XML
         id: version
