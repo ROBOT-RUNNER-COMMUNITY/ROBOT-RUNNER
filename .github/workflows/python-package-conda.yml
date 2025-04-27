@@ -52,13 +52,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-      
+
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconfirm --onefile --windowed main.py
+          pyinstaller --noconfirm --onefile --windowed --name RobotTestRunner --add-data "./config.xml;." --add-data "./style/style.qss;style" --add-data "./images/*;images" --icon=images/Logo_exe_grand.ico main.py
 
       - name: Install Inno Setup
         run: choco install -y innosetup
+
+      - name: Prepare Installers folder
+        run: |
+          mkdir installers
+
+      - name: Download Redistributable and Python Installer
+        run: |
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "installers/vc_redist.x64.exe"
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe" -OutFile "installers/python-3.10.0-amd64.exe"
 
       - name: Extract version from XML
         id: version
@@ -71,7 +80,7 @@ jobs:
 
       - name: Build Installer using Inno Setup
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./Setup.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.VERSION }} ./setup.iss
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
