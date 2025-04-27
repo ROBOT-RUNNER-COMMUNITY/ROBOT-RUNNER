@@ -51,23 +51,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install -r requirements.txt
 
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name RobotTestRunner --add-data "./config.xml;." --add-data "./style/style.qss;style" --add-data "./images/*;images" --icon=images/Logo_exe_grand.ico main.py
+          bash build.sh
 
       - name: Install Inno Setup
         run: choco install -y innosetup
-
-      - name: Prepare Installers folder
-        run: |
-          mkdir installers
-
-      - name: Download Redistributable and Python Installer
-        run: |
-          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "installers/vc_redist.x64.exe"
-          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe" -OutFile "installers/python-3.10.0-amd64.exe"
 
       - name: Extract version from XML
         id: version
@@ -75,7 +66,7 @@ jobs:
         run: |
           [xml]$xml = Get-Content -Path "config.xml"
           $version = $xml.data.version.Trim()
-          Write-Output "Extracted version: $version"
+          echo "Extracted version: $version"
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build Installer using Inno Setup
