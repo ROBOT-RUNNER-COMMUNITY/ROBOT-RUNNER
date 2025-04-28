@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QFont, QIcon
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSet, QBarSeries, QBarCategoryAxis, QValueAxis
 
+from utils.resource_utils import resource_path
+
 class DashboardWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -19,7 +21,7 @@ class DashboardWidget(QWidget):
         
         # Refresh Button with icon
         self.refresh_button = QPushButton()
-        self.refresh_button.setIcon(QIcon(":/icons/refresh.svg"))  # Use your refresh icon
+        self.refresh_button.setIcon(QIcon(resource_path("images/refresh.png")))  # Use your refresh icon
         self.refresh_button.setIconSize(QSize(16, 16))
         self.refresh_button.setText(" Refresh Dashboard")
         self.refresh_button.setStyleSheet("""
@@ -43,7 +45,7 @@ class DashboardWidget(QWidget):
         
         # Export Button with Excel icon
         self.export_button = QPushButton()
-        self.export_button.setIcon(QIcon(":/icons/excel.svg"))  # Use your Excel icon
+        self.export_button.setIcon(QIcon(resource_path("images/excel.png")))  # Use your Excel icon
         self.export_button.setIconSize(QSize(16, 16))
         self.export_button.setText(" Export Full Report")
         self.export_button.setStyleSheet("""
