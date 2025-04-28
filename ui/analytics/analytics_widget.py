@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from utils.resource_utils import resource_path
+
 class AnalyticsWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -21,7 +23,7 @@ class AnalyticsWidget(QWidget):
         
         # Refresh Button
         self.refresh_button = QPushButton()
-        self.refresh_button.setIcon(QIcon.fromTheme("view-refresh"))
+        self.refresh_button.setIcon(QIcon(resource_path("images/refresh.png")))  # Use your refresh icon
         self.refresh_button.setIconSize(QSize(16, 16))
         self.refresh_button.setText(" Refresh Analytics")
         self.refresh_button.setStyleSheet("""
@@ -45,7 +47,7 @@ class AnalyticsWidget(QWidget):
         
         # Export Button
         self.export_button = QPushButton()
-        self.export_button.setIcon(QIcon.fromTheme("x-office-spreadsheet"))
+        self.export_button.setIcon(QIcon(resource_path("images/excel.png")))  # Use your Excel icon
         self.export_button.setIconSize(QSize(16, 16))
         self.export_button.setText(" Export Analytics")
         self.export_button.setStyleSheet("""
@@ -55,7 +57,7 @@ class AnalyticsWidget(QWidget):
                 border-radius: 4px;
                 min-width: 150px;
                 color: white;
-                background-color: #17a2b8;
+                background-color: #2f8a39;
             }
             QPushButton:hover {
                 background-color: #138496;
