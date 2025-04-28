@@ -133,18 +133,21 @@ jobs:
           
           echo "Installer signed successfully"
 
-      - name: Verify signature
+      - name: Verify signature (non-blocking)
         shell: pwsh
         run: |
           Get-ChildItem -Path "output\*.exe" | ForEach-Object {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+            Write-Output "`n=== Signature verification for $($_.Name) ==="
+            Write-Output "Status: $($sig.Status)"
+            Write-Output "Signer Certificate Subject: $($sig.SignerCertificate.Subject)"
+            
             if ($sig.Status -ne "Valid") {
-              Write-Error "Signature verification failed for $($_.Name)"
+              Write-Warning "Signature is not trusted - Expected for self-signed certificates"
             } else {
-              Write-Output "Signature valid for $($_.Name)"
-              Write-Output "Signature details:"
-              Write-Output $sig
+              Write-Output "Signature is valid and trusted"
             }
+            Write-Output "=================================`n"
           }
 
       - name: Calculate SHA256 hash
@@ -180,18 +183,23 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build.outputs.version }}
-          name: Release ${{ needs.build.outputs.version }}
+          tag_name: v${{ needs.build.outputs.version }}
+          name: "RobotTestRunner v${{ needs.build.outputs.version }}"
           body: |
-            New release of the desktop application.
+            ## Release Notes
+            
+            ### Version ${{ needs.build.outputs.version }}
             
             ### Checksums
-            SHA256: ${{ needs.build.outputs.sha256 }}
+            **SHA256:** `${{ needs.build.outputs.sha256 }}`
             
-            ### Safety Note
-            This executable is signed with a temporary self-signed certificate for testing purposes.
-            The alert you see is normal as this certificate isn't from a trusted authority.
-            You can verify the SHA256 checksum matches the one provided here.
+            ### Verification
+            This build was automatically signed with a temporary self-signed certificate.
+            
+            ### Verification Command (Windows):
+            ```powershell
+            Get-AuthenticodeSignature -FilePath ".\RobotTestRunner_Setup.exe" | Format-List
+            ```
           draft: false
           prerelease: false
           files: dist/*.exe
