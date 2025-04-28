@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QScrollArea, QSizePolicy, QGridLayout
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -15,29 +16,61 @@ class AnalyticsWidget(QWidget):
         self._init_ui()
         
     def _init_ui(self):
-        # Refresh button
-        refresh_layout = QHBoxLayout()
-        self.refresh_button = QPushButton("↻ Refresh Analytics")
+        # Refresh and Export buttons
+        button_layout = QHBoxLayout()
+        
+        # Refresh Button
+        self.refresh_button = QPushButton()
+        self.refresh_button.setIcon(QIcon.fromTheme("view-refresh"))
+        self.refresh_button.setIconSize(QSize(16, 16))
+        self.refresh_button.setText(" Refresh Analytics")
         self.refresh_button.setStyleSheet("""
             QPushButton {
                 font-size: 12px;
                 padding: 8px 12px;
                 border-radius: 4px;
                 min-width: 150px;
-                color: white;  /* couleur par défaut */
+                color: white;
+                background-color: #6c757d;
             }
             QPushButton:hover {
-                background-color: #28a745;  /* vert */
-                color: black;               /* texte noir */
+                background-color: #5a6268;
+                color: white;
             }
             QPushButton:pressed {
-                background: #218838;        /* vert foncé pressé */
-                color: black;
+                background: #545b62;
+                color: white;
             }
         """)
-        refresh_layout.addWidget(self.refresh_button)
-        refresh_layout.addStretch()
-        self.analytics_layout.addLayout(refresh_layout)
+        
+        # Export Button
+        self.export_button = QPushButton()
+        self.export_button.setIcon(QIcon.fromTheme("x-office-spreadsheet"))
+        self.export_button.setIconSize(QSize(16, 16))
+        self.export_button.setText(" Export Analytics")
+        self.export_button.setStyleSheet("""
+            QPushButton {
+                font-size: 12px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                min-width: 150px;
+                color: white;
+                background-color: #17a2b8;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+                color: white;
+            }
+            QPushButton:pressed {
+                background: #117a8b;
+                color: white;
+            }
+        """)
+        
+        button_layout.addWidget(self.refresh_button)
+        button_layout.addWidget(self.export_button)
+        button_layout.addStretch()
+        self.analytics_layout.addLayout(button_layout)
         
         # Container for charts with scroll
         scroll = QScrollArea()
