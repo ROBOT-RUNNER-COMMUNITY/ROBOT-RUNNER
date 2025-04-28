@@ -1,9 +1,10 @@
 #!/bin/bash
-#####################################################################################
+#########################################################################################
 # Author : Achraf KHABAR
-# Description : 100% Guaranteed Working Build Script
-# Version : 9.0 (Final Solution)
-#####################################################################################
+# Description : building the exe files and installing all dependancies needed by the app
+# Date : 28/04/2025
+# Version : 9.0
+#########################################################################################
 
 set -euo pipefail
 set -x
@@ -99,10 +100,10 @@ cp -v "${QT_BIN_PATH}/Qt6OpenGL.dll" "dist/${EXEC_NAME}/" || true
 # 9. VERIFY FINAL BUILD
 echo "=== VERIFYING BUILD ==="
 if [ -f "dist/${EXEC_NAME}/${EXEC_NAME}.exe" ]; then
-    echo "✅ Build successful!"
+    echo "Build successful!"
     echo "Executable: dist/${EXEC_NAME}/${EXEC_NAME}.exe"
 else
-    echo "❌ Build failed"
+    echo "Build failed"
     exit 1
 fi
 
