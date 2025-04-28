@@ -8,13 +8,13 @@ class DashboardDataLoader(QObject):
     
     def __init__(self, results_dir=None):
         super().__init__()
-        self.results_dir = None  # Initialize as None
-        self.set_results_dir(results_dir)  # Set via method
+        self.results_dir = None
+        self.set_results_dir(results_dir)
         self.is_loading = False
         
     def set_results_dir(self, results_dir):
-        """Set the results directory (mandatory)"""
-        self.results_dir = results_dir  # No fallback directory
+        """Set the results directory"""
+        self.results_dir = results_dir
         
     def load_data(self, force=False):
         if self.is_loading:
@@ -26,19 +26,17 @@ class DashboardDataLoader(QObject):
             'passed': 0,
             'failed': 0,
             'execution_times': [],
-            'recent_test_runs': [],
             'test_details': []
         }
         
         try:
-            # Strict directory checks
             if not self.results_dir:
                 print("No results directory configured")
                 self.data_loaded.emit(stats)
                 return
                 
             if not os.path.exists(self.results_dir):
-                print(f"Specified directory doesn't exist: {self.results_dir}")
+                print(f"Directory doesn't exist: {self.results_dir}")
                 self.data_loaded.emit(stats)
                 return
                 
@@ -48,22 +46,17 @@ class DashboardDataLoader(QObject):
                 self.data_loaded.emit(stats)
                 return
                 
-            if os.path.getsize(output_xml) == 0:
-                print("output.xml is empty")
-                self.data_loaded.emit(stats)
-                return
-                
             tree = ET.parse(output_xml)
             root = tree.getroot()
             
-            # METHOD 1: Get statistics from statistics section
+            # Get statistics from statistics section
             stat_node = root.find('.//statistics/total/stat[@name="All Tests"]')
             if stat_node is not None:
                 stats['total_tests'] = int(stat_node.find('total').text)
                 stats['passed'] = int(stat_node.find('pass').text)
                 stats['failed'] = int(stat_node.find('fail').text)
             
-            # METHOD 2: Count individual tests if statistics not found
+            # Count individual tests if statistics not found
             if stats['total_tests'] == 0:
                 pass_count = 0
                 fail_count = 0
@@ -77,8 +70,7 @@ class DashboardDataLoader(QObject):
                 stats['passed'] = pass_count
                 stats['failed'] = fail_count
             
-            # Get individual test details
-            test_runs = {}
+            # Get all test details
             for test in root.findall('.//test'):
                 test_name = test.get('name', 'Unnamed Test')
                 test_status = test.find('status')
@@ -95,18 +87,10 @@ class DashboardDataLoader(QObject):
                         )
                         duration = (end - start).total_seconds()
                         
-                        # Store only the most recent run for each test
-                        if test_name not in test_runs or start > test_runs[test_name]['timestamp']:
-                            test_runs[test_name] = {
-                                'name': test_name,
-                                'timestamp': start,
-                                'status': test_status.get('status', 'UNKNOWN'),
-                                'duration': duration
-                            }
-                            
                         stats['execution_times'].append(duration)
                         stats['test_details'].append({
                             'name': test_name,
+                            'timestamp': start,
                             'status': test_status.get('status', 'UNKNOWN'),
                             'duration': duration,
                             'message': test_status.text.strip() if test_status.text else ""
@@ -114,13 +98,6 @@ class DashboardDataLoader(QObject):
                         
                     except ValueError as e:
                         continue
-            
-            # Convert to list and sort by most recent
-            stats['recent_test_runs'] = sorted(
-                test_runs.values(),
-                key=lambda x: x['timestamp'],
-                reverse=True
-            )[:10]  # Limit to 10 most recent
             
             self.data_loaded.emit(stats)
             
