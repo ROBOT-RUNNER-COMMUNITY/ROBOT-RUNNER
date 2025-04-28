@@ -47,7 +47,7 @@ class DashboardWidget(QWidget):
         self.export_button = QPushButton()
         self.export_button.setIcon(QIcon(resource_path("images/excel.png")))  # Use your Excel icon
         self.export_button.setIconSize(QSize(16, 16))
-        self.export_button.setText(" Export Full Report")
+        self.export_button.setText(" Export Dashboard ")
         self.export_button.setStyleSheet("""
             QPushButton {
                 font-size: 12px;
@@ -55,7 +55,7 @@ class DashboardWidget(QWidget):
                 border-radius: 4px;
                 min-width: 150px;
                 color: white;
-                background-color: #17a2b8;
+                background-color: #2f8a39;
             }
             QPushButton:hover {
                 background-color: #138496;

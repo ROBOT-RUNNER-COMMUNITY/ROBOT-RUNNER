@@ -261,140 +261,70 @@ class AnalyticsController(QObject):
         self.widget.time_canvas.draw()
 
     def export_to_excel(self):
-        """Export analytics data to Excel with proper charts and formatting"""
+        """Export analytics data to Excel with robust error handling"""
         try:
-            # Vérification des prérequis
             if not self.data_loader.results_dir:
-                QMessageBox.warning(self.widget, "Export Error", "No results directory configured")
+                QMessageBox.warning(self.widget, "Export Error", 
+                                  "No results directory configured")
                 return
-
-            # Préparation du chemin d'export
+                
             reports_dir = os.path.join(self.data_loader.results_dir, "reports")
             os.makedirs(reports_dir, exist_ok=True)
+            
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            export_path = os.path.join(reports_dir, f"RobotAnalyticsReport_{timestamp}.xlsx")
-
-            # Vérification du fichier source
+            export_filename = f"RobotAnalyticsReport_{timestamp}.xlsx"
+            export_path = os.path.abspath(os.path.join(reports_dir, export_filename))
+            
+            if os.path.exists(export_path):
+                QMessageBox.warning(self.widget, "Export Error",
+                                  "Report file already exists. Please try again.")
+                return
+                
             output_xml = os.path.join(self.data_loader.results_dir, "output.xml")
             if not os.path.exists(output_xml):
-                QMessageBox.warning(self.widget, "Export Error", "output.xml not found")
+                QMessageBox.warning(self.widget, "Export Error",
+                                  "output.xml not found in results directory")
                 return
-
-            # Extraction des données
-            test_data = []
-            tree = ET.parse(output_xml)
-            root = tree.getroot()
-
-            for test in root.findall('.//test'):
-                # ... (code d'extraction existant) ...
-                pass
-
+                
+            # Parse test data with improved error handling
+            test_data = self._parse_test_data(output_xml)
             if not test_data:
-                QMessageBox.warning(self.widget, "Export Error", "No test data to export")
+                QMessageBox.warning(self.widget, "Export Error",
+                    "No valid test data found to export. Possible reasons:\n"
+                    "1. Tests haven't been executed successfully\n"
+                    "2. The output.xml is malformed\n"
+                    "3. Test cases are missing status information")
                 return
-
-            # Création du DataFrame
+                
+            # Create DataFrame
             df = pd.DataFrame(test_data)
-
-            # Création du fichier Excel avec mise en forme
-            with pd.ExcelWriter(export_path, engine='xlsxwriter') as writer:
-                # 1. Feuille des résultats bruts
-                df.to_excel(writer, sheet_name='Test Results', index=False)
-                workbook = writer.book
-                worksheet = writer.sheets['Test Results']
-                
-                # Formatage conditionnel pour les statuts
-                format_pass = workbook.add_format({'bg_color': '#C6EFCE', 'font_color': '#006100'})
-                format_fail = workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
-                format_other = workbook.add_format({'bg_color': '#FFEB9C', 'font_color': '#9C5700'})
-                
-                worksheet.conditional_format(1, 2, len(df), 2, {
-                    'type': 'text',
-                    'criteria': 'containing',
-                    'value': 'PASS',
-                    'format': format_pass
-                })
-                
-                worksheet.conditional_format(1, 2, len(df), 2, {
-                    'type': 'text',
-                    'criteria': 'containing',
-                    'value': 'FAIL',
-                    'format': format_fail
-                })
-                
-                worksheet.conditional_format(1, 2, len(df), 2, {
-                    'type': 'text',
-                    'criteria': 'containing',
-                    'value': 'UNKNOWN',
-                    'format': format_other
-                })
-
-                # 2. Feuille des graphiques analytiques
-                charts_sheet = workbook.add_worksheet('Analytics Charts')
-                charts_sheet.set_tab_color('#4F81BD')  # Bleu pour identification
-                
-                # Ajout des graphiques principaux
-                self._add_excel_charts(workbook, df, charts_sheet)
-                
-                # Ajustement des colonnes
-                for i, col in enumerate(df.columns):
-                    worksheet.set_column(i, i, max(len(col), *df[col].astype(str).map(len).max()) + 2)
-
-            # Ouverture du fichier
-            self._open_file(export_path)
-            QMessageBox.information(self.widget, "Export Successful", 
-                                f"Report exported to:\n{export_path}")
-
-        except Exception as e:
-            QMessageBox.critical(self.widget, "Export Error", 
-                            f"Failed to export report:\n{str(e)}")
-
-    def _add_excel_charts(self, workbook, df, sheet):
-        """Add all analytics charts to Excel sheet"""
-        try:
-            # 1. Graphique des tendances d'exécution
-            dates = pd.to_datetime(df['Timestamp']).dt.date
-            status_counts = df.groupby([dates, 'Status']).size().unstack(fill_value=0)
             
-            line_chart = workbook.add_chart({'type': 'line'})
-            for i, status in enumerate(['PASS', 'FAIL']):
-                if status in status_counts.columns:
-                    line_chart.add_series({
-                        'name': status,
-                        'categories': ['Test Results', 1, 0, len(df), 0],
-                        'values': ['Test Results', 1, 2+i, len(df), 2+i],
-                        'line': {'color': '#4CAF50' if status == 'PASS' else '#F44336'}
-                    })
-            line_chart.set_title({'name': 'Test Execution Trends'})
-            line_chart.set_x_axis({'name': 'Date'})
-            line_chart.set_y_axis({'name': 'Count'})
-            sheet.insert_chart('B2', line_chart)
-
-            # 2. Camembert des statuts
-            pie_chart = workbook.add_chart({'type': 'pie'})
-            status_summary = df['Status'].value_counts()
-            pie_chart.add_series({
-                'name': 'Status Distribution',
-                'categories': ['Test Results', 1, 2, len(status_summary), 2],
-                'values': ['Test Results', 1, 2, len(status_summary), 2],
-                'data_labels': {'percentage': True, 'category': True}
-            })
-            pie_chart.set_title({'name': 'Test Status Distribution'})
-            sheet.insert_chart('B20', pie_chart)
-
-            # 3. Histogramme des temps d'exécution
-            hist_chart = workbook.add_chart({'type': 'column'})
-            hist_chart.add_series({
-                'name': 'Execution Time',
-                'values': ['Test Results', 1, 3, len(df), 3],
-                'categories': ['Test Results', 1, 0, len(df), 0],
-                'fill': {'color': '#3498db'}
-            })
-            hist_chart.set_title({'name': 'Execution Time Distribution'})
-            sheet.insert_chart('B38', hist_chart)
-
+            # Export to Excel
+            with pd.ExcelWriter(export_path, engine='xlsxwriter') as writer:
+                # Write test results
+                df.to_excel(writer, sheet_name='Test Results', index=False)
+                
+                # Add analytics sheets
+                self._add_analytics_sheets(writer.book, df)
+                
+                # Auto-adjust columns
+                worksheet = writer.sheets['Test Results']
+                for i, col in enumerate(df.columns):
+                    max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
+                    worksheet.set_column(i, i, max_len)
+            
+            # Open the file
+            self._open_file(export_path)
+            
+            QMessageBox.information(self.widget, "Export Successful",
+                                  f"Analytics report exported to:\n{export_path}")
+            
+        except PermissionError:
+            QMessageBox.warning(self.widget, "Export Error",
+                              "Please close the previous report before exporting a new one")
         except Exception as e:
-            logging.error(f"Error adding Excel charts: {str(e)}")
+            QMessageBox.critical(self.widget, "Export Error",
+                              f"Failed to export report:\n{str(e)}")
 
     def _parse_test_data(self, xml_path):
         """Robust XML parser with comprehensive error handling"""
