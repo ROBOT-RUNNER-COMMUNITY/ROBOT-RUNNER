@@ -7,8 +7,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QListWidget, QCheckBox, QSpinBox, QScrollArea, 
     QStackedWidget, QMessageBox, QLineEdit, QGroupBox, 
-    QFormLayout
+    QFormLayout, QSizePolicy
 )
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QTimer, QSettings
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QTimer, QSettings
 from PyQt6.QtGui import QFont
 
@@ -25,6 +26,7 @@ from ui.analytics.analytics_widget import AnalyticsWidget
 from ui.analytics.analytics_controller import AnalyticsController
 from ui.help.help_widget import HelpWidget
 from ui.help.help_controller import HelpController
+
 
 
 matplotlib.use('Qt5Agg')
@@ -90,11 +92,12 @@ class RobotTestRunner(QWidget):
         self.right_container.setLayout(self.right_layout)
         
         # Title bar
-        self.title_bar = TitleBar("", self)
+        self.title_bar = TitleBar("Robot Test Runner", self)
         self.right_layout.addWidget(self.title_bar)
         
         # Stacked widget for pages
         self.stacked_widget = QStackedWidget()
+        self.stacked_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.right_layout.addWidget(self.stacked_widget)
         
         # Main content area
@@ -104,7 +107,7 @@ class RobotTestRunner(QWidget):
         self.content_layout = QVBoxLayout()
         self.content_widget.setLayout(self.content_layout)
         self.content_scroll.setWidget(self.content_widget)
-        self.right_layout.addWidget(self.content_scroll)
+        self.stacked_widget.addWidget(self.content_scroll)
         
         self.main_h_layout.addWidget(self.right_container)
         
@@ -314,7 +317,7 @@ class RobotTestRunner(QWidget):
 
     def _handle_help_link(self, url):
         """Handle help link clicks"""
-        print(f"Help link clicked: {url}")  # You can add analytics here if needed
+        print(f"Help link clicked: {url}")
 
     def _save_settings(self):
         """Save settings to persistent storage"""
@@ -430,13 +433,10 @@ class RobotTestRunner(QWidget):
 
     def show_main_content(self):
         """Show the main test selection content"""
-        self.content_scroll.show()
-        self.stacked_widget.hide()
+        self.stacked_widget.setCurrentWidget(self.content_scroll)
 
     def show_page(self, page):
         """Show a specific page"""
-        self.content_scroll.hide()
-        self.stacked_widget.show()
         self.stacked_widget.setCurrentWidget(page)
 
     def toggle_select_all_tests(self, state):

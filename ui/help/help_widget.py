@@ -205,7 +205,25 @@ class HelpWidget(QWidget):
         
         layout.addLayout(buttons_layout)
 
-        footer = QLabel("ROBOT RUNNER v2.7.16")
+        config_paths = [
+                'config.xml',  # Development path
+                os.path.join(os.path.dirname(sys.executable), 'config.xml'),  # EXE location
+            ]
+                
+        config_loaded = False
+        for path in config_paths:
+            if os.path.exists(path):
+                tree = ET.parse(path)
+                root = tree.getroot()
+                self.version_label = f"{root[0].text}"
+                config_loaded = True
+                break
+                
+        if not config_loaded:
+            self.version_label = "(Unknown version)"
+
+        footer = QLabel(f"© ROBOT RUNNER {self.version_label} | "
+                        "Developed by Achraf KHABAR | ")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         footer.setStyleSheet("""
             QLabel {
@@ -218,30 +236,7 @@ class HelpWidget(QWidget):
         layout.addWidget(footer)
         
         self.setLayout(layout)
-    
-    def _load_config(self):
-            try:
-                # Try multiple paths to locate the config file
-                config_paths = [
-                    'config.xml',  # Development path
-                    os.path.join(os.path.dirname(sys.executable), 'config.xml'),  # EXE location
-                    os.path.join(sys._MEIPASS, 'config.xml')  # PyInstaller temp directory
-                ]
-                
-                config_loaded = False
-                for path in config_paths:
-                    if os.path.exists(path):
-                        tree = ET.parse(path)
-                        root = tree.getroot()
-                        self.version_label = f"© Robot Runner {root[0].text}"
-                        config_loaded = True
-                        break
-                
-                if not config_loaded:
-                    raise FileNotFoundError("Config file not found in any standard location")
-                    
-            except Exception as e:
-                self.version_label = "© Robot Runner v2.7.16"
+            
 
     def setup_animations(self):
         self.opacity_effect = QGraphicsOpacityEffect(self)
