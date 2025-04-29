@@ -9,7 +9,7 @@ class TitleBar(QWidget):
         self.setFixedHeight(40)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.drag_start_position = None
-        self.is_maximized = False  # Track maximized state
+        self.is_maximized = False
 
         layout = QHBoxLayout()
         layout.setContentsMargins(10, 0, 10, 0)
@@ -69,9 +69,7 @@ class TitleBar(QWidget):
             return
             
         if self.is_maximized:
-            # If window is maximized and we start dragging
             self.parent_window.showNormal()
-            # Adjust position for natural dragging
             new_pos = event.globalPosition().toPoint() - QPoint(
                 self.parent_window.width() // 2,
                 self.height() // 2
@@ -80,7 +78,6 @@ class TitleBar(QWidget):
             self.drag_start_position = event.globalPosition().toPoint()
             self.is_maximized = False
         else:
-            # Normal window movement
             delta = event.globalPosition().toPoint() - self.drag_start_position
             self.parent_window.move(self.parent_window.pos() + delta)
             self.drag_start_position = event.globalPosition().toPoint()
