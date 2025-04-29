@@ -9,6 +9,7 @@ class TitleBar(QWidget):
         self.setFixedHeight(40)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.drag_start_position = None
+        self.is_maximized = False  # Track maximized state
 
         layout = QHBoxLayout()
         layout.setContentsMargins(10, 0, 10, 0)
@@ -25,6 +26,7 @@ class TitleBar(QWidget):
         for btn in [self.minimize_button, self.maximize_button, self.close_button]:
             btn.setFont(button_font)
             btn.setFixedSize(QSize(32, 32))
+            btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             layout.addWidget(btn)
 
         if self.parent_window:
@@ -53,6 +55,7 @@ class TitleBar(QWidget):
 
     def eventFilter(self, obj, event):
         if obj == self.parent_window and event.type() == QEvent.Type.WindowStateChange:
+            self.is_maximized = self.parent_window.isMaximized()
             self.update_maximize_button()
         return super().eventFilter(obj, event)
 
@@ -65,8 +68,19 @@ class TitleBar(QWidget):
         if not self.drag_start_position:
             return
             
-        if not self.parent_window.isMaximized():
-            # Déplacement normal de la fenêtre
+        if self.is_maximized:
+            # If window is maximized and we start dragging
+            self.parent_window.showNormal()
+            # Adjust position for natural dragging
+            new_pos = event.globalPosition().toPoint() - QPoint(
+                self.parent_window.width() // 2,
+                self.height() // 2
+            )
+            self.parent_window.move(new_pos)
+            self.drag_start_position = event.globalPosition().toPoint()
+            self.is_maximized = False
+        else:
+            # Normal window movement
             delta = event.globalPosition().toPoint() - self.drag_start_position
             self.parent_window.move(self.parent_window.pos() + delta)
             self.drag_start_position = event.globalPosition().toPoint()
@@ -81,14 +95,16 @@ class TitleBar(QWidget):
         event.accept()
 
     def toggle_maximize_restore(self):
-        if self.parent_window.isMaximized():
+        if self.is_maximized:
             self.parent_window.showNormal()
+            self.is_maximized = False
         else:
             self.parent_window.showMaximized()
+            self.is_maximized = True
         self.update_maximize_button()
 
     def update_maximize_button(self):
-        if self.parent_window.isMaximized():
+        if self.is_maximized:
             self.maximize_button.setText("🗗")
         else:
             self.maximize_button.setText("🗖")
