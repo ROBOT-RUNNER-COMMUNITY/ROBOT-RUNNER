@@ -28,7 +28,6 @@ from ui.help.help_widget import HelpWidget
 from ui.help.help_controller import HelpController
 
 
-
 matplotlib.use('Qt5Agg')
 
 class RobotTestRunner(QWidget):

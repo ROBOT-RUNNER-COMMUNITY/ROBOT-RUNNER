@@ -64,12 +64,12 @@ REQUIRED_FILES=(
 
 for FILE in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$FILE" ]; then
-        echo "❌ Missing required file: $FILE"
+        echo "Missing required file: $FILE"
         echo "Reinstalling PyQt6..."
         pip uninstall -y PyQt6 PyQt6-Charts PyQt6-Qt6
         pip install PyQt6 PyQt6-Charts
         if [ ! -f "$FILE" ]; then
-            echo "❌❌ File still missing after reinstall: $FILE"
+            echo "File still missing after reinstall: $FILE"
             exit 1
         fi
     fi
