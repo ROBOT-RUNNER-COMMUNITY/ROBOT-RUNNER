@@ -50,5 +50,3 @@ else
   echo "Error: Failed to push changes to branch '$1'."
   exit 1
 fi
-
-
