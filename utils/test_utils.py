@@ -89,8 +89,8 @@ def run_tests(window):
 
         # Wait for output.xml to be generated
         output_path = os.path.join(window.output_directory, "output.xml")
-        max_wait = 15  # seconds
-        wait_interval = 0.5  # seconds
+        max_wait = 15  
+        wait_interval = 0.5  
 
         for _ in range(int(max_wait / wait_interval)):
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
@@ -264,7 +264,7 @@ def export_results(window):
             try:
                 os.startfile(excel_path)
             except:
-                pass  # Silently fail if can't auto-open
+                pass  
         else:
             window.resultLabel.setText("Failed to create report file")
             window.resultLabel.setStyleSheet("color: #ad402a")

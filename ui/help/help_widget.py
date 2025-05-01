@@ -21,9 +21,9 @@ class AnimatedCircleButton(QPushButton):
         self.text = text
         self.icon = QIcon(resource_path(f"images/{icon_path}"))
         self.icon_size = 60
-        self._radius = 45  # Internal radius property
+        self._radius = 45  
         self.hover_radius = 50
-        self.base_radius = 45  # Added missing attribute
+        self.base_radius = 45 
         
         # Colors
         self.base_color = QColor(69, 71, 90, 80)
@@ -72,7 +72,7 @@ class AnimatedCircleButton(QPushButton):
     def leaveEvent(self, event):
         self.animation.stop()
         self.animation.setStartValue(self._radius)
-        self.animation.setEndValue(self.base_radius)  # Now using the correct attribute
+        self.animation.setEndValue(self.base_radius)
         self.animation.start()
         super().leaveEvent(event)
 
@@ -206,8 +206,8 @@ class HelpWidget(QWidget):
         layout.addLayout(buttons_layout)
 
         config_paths = [
-                'config.xml',  # Development path
-                os.path.join(os.path.dirname(sys.executable), 'config.xml'),  # EXE location
+                'config.xml',
+                os.path.join(os.path.dirname(sys.executable), 'config.xml'),
             ]
                 
         config_loaded = False
