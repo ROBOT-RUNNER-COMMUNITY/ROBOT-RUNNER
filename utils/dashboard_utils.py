@@ -38,12 +38,12 @@ class DashboardDataLoader(QObject):
                         for suite in root.findall('.//suite'):
                             status = suite.find('.//status')
                             if status is not None:
-                                # Parse Robot Framework timestamp format (YYYYMMDD HH:MM:SS.SSS)
+
                                 timestamp_str = status.get('starttime')
                                 try:
                                     timestamp = datetime.strptime(timestamp_str, "%Y%m%d %H:%M:%S.%f")
                                 except ValueError:
-                                    # Fallback if milliseconds are missing
+                                
                                     timestamp = datetime.strptime(timestamp_str, "%Y%m%d %H:%M:%S")
                                 
                                 stats['recent_runs'].append({
@@ -52,7 +52,7 @@ class DashboardDataLoader(QObject):
                                     'status': 'PASS' if status.get('status') == 'PASS' else 'FAIL'
                                 })
                                 
-                                # Calculate execution time
+                            
                                 endtime_str = status.get('endtime')
                                 try:
                                     endtime = datetime.strptime(endtime_str, "%Y%m%d %H:%M:%S.%f")

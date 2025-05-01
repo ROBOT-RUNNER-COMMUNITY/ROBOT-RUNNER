@@ -46,11 +46,10 @@ class RobotTestRunner(QWidget):
 
     def _load_config(self):
         try:
-            # Try multiple paths to locate the config file
             config_paths = [
-                'config.xml',  # Development path
-                os.path.join(os.path.dirname(sys.executable), 'config.xml'),  # EXE location
-                os.path.join(sys._MEIPASS, 'config.xml')  # PyInstaller temp directory
+                'config.xml',
+                os.path.join(os.path.dirname(sys.executable), 'config.xml'),  
+                os.path.join(sys._MEIPASS, 'config.xml')
             ]
             
             config_loaded = False

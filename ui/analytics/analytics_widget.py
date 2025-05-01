@@ -47,7 +47,7 @@ class AnalyticsWidget(QWidget):
         
         # Export Button
         self.export_button = QPushButton()
-        self.export_button.setIcon(QIcon(resource_path("images/excel.png")))  # Use your Excel icon
+        self.export_button.setIcon(QIcon(resource_path("images/excel.png")))
         self.export_button.setIconSize(QSize(16, 16))
         self.export_button.setText(" Export Analytics")
         self.export_button.setStyleSheet("""
