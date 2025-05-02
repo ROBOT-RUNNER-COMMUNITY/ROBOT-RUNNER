@@ -39,7 +39,6 @@ class DashboardController(QObject):
         
         # Configure axes
         self.bar_axis_x = QBarCategoryAxis()
-        self.bar_axis_x.setTitleText("Test Cases")
         self.bar_axis_x.setLabelsFont(QFont("Arial", 8))
         self.bar_axis_x.setLabelsAngle(-45)
         
