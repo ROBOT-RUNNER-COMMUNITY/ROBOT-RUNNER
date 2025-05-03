@@ -2,9 +2,11 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton,
                              QSizePolicy, QSpacerItem, QLabel, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtCore import QSize
  
 from utils.resource_utils import resource_path
- 
+
+
 class SideBar(QWidget):
     testSelectionClicked = pyqtSignal()
     dashboardClicked = pyqtSignal()
@@ -44,12 +46,19 @@ class SideBar(QWidget):
         layout.addLayout(logo_layout)
         # Main Navigation Section
         self.btn_dashboard = QPushButton(QIcon(resource_path("images/dashboard.png")), " Dashboard")
+        self.btn_dashboard.setIconSize(QSize(26, 26))
+
         self.btn_tests = QPushButton(QIcon(resource_path("images/Tests.png")), " Test Selection")
+        self.btn_tests.setIconSize(QSize(26, 26))
  
         self.btn_analytics = QPushButton(QIcon(resource_path("images/analytics.png")), " Analytics")
+        self.btn_analytics.setIconSize(QSize(26, 26))
  
         self.btn_settings = QPushButton(QIcon(resource_path("images/settings.png")), " Settings")
+        self.btn_settings.setIconSize(QSize(26, 26))
+
         self.btn_help = QPushButton(QIcon(resource_path("images/help.png")), " Help")
+        self.btn_help.setIconSize(QSize(26, 26))
  
         # Add all buttons to layout
         layout.addWidget(self.btn_dashboard)
