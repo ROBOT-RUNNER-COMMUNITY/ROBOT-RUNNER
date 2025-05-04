@@ -129,7 +129,7 @@ class AnalyticsController(QObject):
         total = data.get('total_tests', 0)
         passed = data.get('passed', 0)
         failed = data.get('failed', 0)
-        other = max(0, total - passed - failed)
+        # other = max(0, total - passed - failed)
         
         if total == 0:
             self._show_empty_chart(ax, "No test data available")
@@ -137,10 +137,10 @@ class AnalyticsController(QObject):
             return
             
         try:
-            sizes = [passed, failed, other]
-            labels = [f'Passed ({passed})', f'Failed ({failed})', f'Other ({other})']
-            colors = ['#2ecc71', '#e74c3c', '#f39c12']
-            explode = (0.05, 0.05, 0)
+            sizes = [passed, failed]
+            labels = [f'Passed ({passed})', f'Failed ({failed})']
+            colors = ['#2ecc71', '#e74c3c']
+            explode = (0.05, 0.05)
             
             wedges, _, _ = ax.pie(
                 sizes, explode=explode, labels=labels, colors=colors,
