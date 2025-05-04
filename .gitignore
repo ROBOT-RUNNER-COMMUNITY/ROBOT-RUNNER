@@ -53,6 +53,8 @@ ui/dashboard/__pycache__
 # Not pushing environment files
 venv
 installed.txt
+pyvenv.cfg
+Lib/
 
 # ignore all test files
 tests-for-validation/robotframework-*.log

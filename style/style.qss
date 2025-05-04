@@ -82,13 +82,12 @@ QListWidget::item {
 }
 
 QListWidget::item:selected {
-    background-color: #45475a;
-    color: #0ccb65;
-    
+    color: white;
 }
 
 QListWidget::item:hover {
-    background-color: #363646;
+    background-color: #7aebaf;
+    color: black
 }
 
 /* Checkboxes */
@@ -111,7 +110,7 @@ QCheckBox::indicator:unchecked {
 QCheckBox::indicator:checked {
     border: 1px solid #22d053;
     background: #22d053;
-    image: url(:/images/check.png);
+    image: url(images/check.png);
 }
 
 /* Spin Box */
