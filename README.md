@@ -1,4 +1,3 @@
-
 <h1 align="center">
   <br>
   <a href="ROBBOT RUNNER"><img src="images/Logo.png" width="300"></a>
@@ -7,9 +6,9 @@
   <br>
 </h1>
 <p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#download">Download</a> •
-  <a href="#credits">Credits</a> •
+  <a href="#key-features">Key Features</a>
+  <a href="#download">Download</a>
+  <a href="#credits">Credits</a>
 </p>
 
 ## Table of Contents
@@ -43,13 +42,11 @@ Before you can run or contribute to the project, ensure you have the following i
     git clone https://github.com/your-username/robot-runner.git
     cd robot-runner
     ```
-
 2. Create a virtual environment (optional but recommended):
 
     ```bash
     python -m venv venv
     ```
-
 3. Activate the virtual environment:
 
     - **Windows**:
@@ -60,20 +57,17 @@ Before you can run or contribute to the project, ensure you have the following i
         ```bash
         source venv/bin/activate
         ```
-
 4. Install the required dependencies:
 
     ```bash
     pip install -r requirements.txt
     ```
-
 5. (Optional) Install Robot Framework and Pabot globally if you don't have them:
 
     ```bash
     pip install robotframework
     pip install pabot
     ```
-
 ## Building the Application
 
 If you'd like to modify and build the application from source, follow these steps.
@@ -128,7 +122,6 @@ In order to generate the executable `exe` file you just need to run the script :
     ```bash
     pyinstaller --onefile --windowed main.py
     ```
-
     - `--onefile`: Bundles everything into a single executable file.
     - `--windowed`: Prevents a command prompt window from appearing when you run the app (for GUI apps).
 
@@ -139,7 +132,6 @@ In order to generate the executable `exe` file you just need to run the script :
     ```bash
     pyinstaller --onefile --windowed --add-data "./style/style.qss;style" --add-data "images/*;images" main.py
     ```
-
     Make sure to adjust paths as needed for your project structure.
 
 ## Contributing
@@ -151,7 +143,7 @@ We welcome contributions! Here’s how you can get involved:
 
 2. **Clone Your Fork**  
    ```bash
-   git clone https://github.com/your-username/robot-runner.git
+   git clone https://github.com/ROBOT-RUNNER-COMMUNITY/ROBOT-RUNNER
    cd robot-runner
 
 3. **Create a Branch**  
